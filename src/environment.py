@@ -1,0 +1,288 @@
+import numpy as np
+import random as r
+from src.agents import BasicAgent
+import pygame
+
+from collections import Counter
+
+# Tile location in matrix
+TILE_ID = [
+    # Outer layer
+    (3, 6), (3, 10), (3, 14),
+    (7, 16), (11, 18), (15, 16),
+    (19, 14), (19, 10), (19, 6),
+    (15, 4), (11, 2), (7, 4),
+
+    # Middle layer
+    (7, 8), (7, 12),
+    (11, 14), (15, 12),
+    (15, 8), (11, 6),
+
+    # Middle point
+    (11, 10),
+]
+
+# Bandit = 0, Brick = 2, Grain = 3, Ore = 4, Lumber = 5, Wool = 6 (Buildable tile = 1)
+TILE_TYPE = [0, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6]
+TILE_NUMBER = [5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8, 10, 9, 4, 5, 6, 3, 11]   # Dice number
+
+BUILDABLE = 1
+
+RIGHT_DIAGONAL = [
+    (1, 5), (1, 9), (1, 13),
+    (5, 3), (5, 7), (5, 11), (5, 15),
+    (9, 1), (9, 5), (9, 9), (9, 13), (9, 17),
+    (13, 3), (13, 7), (13, 11), (13, 15), (13, 19),
+    (17, 5), (17, 9), (17, 13), (17, 17),
+    (21, 7), (21, 11), (21, 15),
+]
+LEFT_DIAGONAL = [
+    (1, 7), (1, 11), (1, 15),
+    (5, 5), (5, 9), (5, 13), (5, 17),
+    (9, 3), (9, 7), (9, 11), (9, 15), (9, 19),
+    (13, 1), (13, 5), (13, 9), (13, 13), (13, 17),
+    (17, 3), (17, 7), (17, 11), (17, 15),
+    (21, 5), (21, 9), (21, 13)
+]
+
+
+class Tile:
+    def __init__(self, coords, tile_type):
+        self.row, self.col = coords
+        self.tile_type = tile_type
+        self.number = 0
+
+        if tile_type == 0:
+            self.has_robber = True
+        else:
+            self.has_robber = False
+
+    def get_tile_type(self):
+        if self.tile_type == 0:
+            return "bandit"
+        if self.tile_type == 2:
+            return "brick"
+        if self.tile_type == 3:
+            return "grain"
+        if self.tile_type == 4:
+            return "ore"
+        if self.tile_type == 5:
+            return "lumber"
+        if self.tile_type == 6:
+            return "wool"
+
+
+class Environment:
+    def __init__(self, players, visualize):
+        self.visualize = False
+        self.players = players
+
+        r.shuffle(TILE_TYPE)
+
+        self.tiles = [Tile(coords, tile_type) for (coords, tile_type) in zip(TILE_ID, TILE_TYPE)]
+        # Actual size 21, 23 (w, h)
+        # 1 Represents buildable, even rows = villages/cities, odd rows = roads
+        self.board = np.array(
+                    [[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+                     [0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0],
+                     [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+                     [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+                     [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+                     [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+                     [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+                     [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+                     [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1],
+                     [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+                     [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+                     [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+                     [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+                     [0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]])
+
+        if 0 in TILE_NUMBER:    # 0 is inserted when bandit tile is generated
+            TILE_NUMBER.remove(0)
+
+        # Generate tile type and number
+        for i, (tile, tile_number) in enumerate(zip(self.tiles, TILE_NUMBER)):
+            for row_offset in range(-1, 2):
+                for col_offset in range(-1, 2):
+                    self.board[tile.row + row_offset][tile.col + col_offset] = tile.tile_type
+            if tile.tile_type == 0:  # Bandit tile
+                self.board[tile.row][tile.col] = 0
+                TILE_NUMBER.insert(i, 0)    # Insert 0 so that tiles and tile number keep same length
+            else:
+                self.board[tile.row][tile.col] = tile_number
+                tile.number = tile_number
+
+    def print_board(self):
+        for row in self.board:
+            print("")
+            for value in row:
+                if value == 0 or value in [3, 4, 5, 6]:
+                    print(" " * 4, end='')
+                else:
+                    if len(str(value)) == 2:
+                        print(value, end=' ' * 2)
+                    else:
+                        print(value, end=' ' * 3)
+        print()
+
+    # Dice throw and players gather resources
+    def environment_step(self):
+        dice_number = r.randint(1, 6) + r.randint(1, 6)
+
+        if dice_number == 7:
+            # TODO add robber
+            # All players half their hands
+            # Player move robber and steal resource
+            pass
+        else:
+            for tile in self.tiles:     # Dictionary lookup?    Loop players and their villages instead?
+                if tile.number == dice_number:
+                    for row_offset, col_offset in [(1, -2), (-1, -2), (3, 0), (-3, 0), (1, 2), (-1, 2)]:
+                        for player in self.players:
+                            if self.board[tile.row + row_offset][tile.col + col_offset] == player.id:
+                                player.resources[tile.get_tile_type()] += 1
+                            if self.board[tile.row + row_offset][tile.col + col_offset] == player.id * 10 + player.id:
+                                player.resources[tile.get_tile_type()] += 2
+                                # TODO City check (represent by double player id)
+
+    # Check if neighboring nodes are not built upon represented by 1
+    def check_village_buildable(self, location):
+        row, col = location
+
+        values = []     # TODO try change so if value not == 1 return False for optimization
+        padding_width = 2
+        padded_board = np.pad(self.board, padding_width)
+        if self.board[row][col] == BUILDABLE:
+            if row % 4 == 0:    # 0 + 4n (difference in offset)
+                values = [padded_board[row + row_offset + padding_width][col + col_offset + padding_width] for
+                          (row_offset, col_offset) in [(-2, 0), (2, -2), (2, 2)]]
+
+            elif row % 2 == 0:  # 2 + 4n
+                values = [padded_board[row + row_offset + padding_width][col + col_offset + padding_width] for
+                          (row_offset, col_offset) in [(2, 0), (-2, -2), (-2, 2)]]
+        else:
+            return False
+        for value in values:
+            if value == 0 or value == BUILDABLE:   # All neighboring village slots are not occupied
+                continue
+            else:   # Neighboring node occupied
+                return False
+        return True
+
+    # Gets all buildable locations for roads and villages
+    def get_buildable_locations(self, player):  # TODO Might belong in player
+        buildable_road_locations = []
+        buildable_village_locations = []
+        padding_width = 2
+        padded_board = np.pad(self.board, padding_width)
+
+        for road in player.roads:
+            row, col = road     # Maybe add redundant check board if place is = player.id
+            if (row - 1) % 4 == 0:      # Diagonal road (1 + 4n)
+                if road in LEFT_DIAGONAL:
+                    road_offset = [(-2, -1), (0, -2), (0, 2), (2, 1)]
+                    village_offset = [(1, 1), (-1, -1)]
+                elif road in RIGHT_DIAGONAL:
+                    road_offset = [(-2, 1), (0, -2), (0, 2), (2, -1)]
+                    village_offset = [(-1, 1), (1, -1)]
+                else:
+                    raise ValueError(f'Road {road} location not correct')
+
+                for row_offset, col_offset in road_offset:
+                    if padded_board[row + row_offset + padding_width][col + col_offset + padding_width] == BUILDABLE:
+                        buildable_road_locations.append((row + row_offset, col + col_offset))
+
+                for row_offset, col_offset in village_offset:
+                    if self.check_village_buildable((row + row_offset, col + col_offset)):
+                        buildable_village_locations.append((row + row_offset, col + col_offset))
+
+            elif (row - 1) % 2 == 0:    # Vertical road (3 + 4n)
+                if self.check_village_buildable((row + 1, col)):
+                    buildable_village_locations.append((row + 1, col))
+                if self.check_village_buildable((row - 1, col)):
+                    buildable_village_locations.append((row - 1, col))
+                for row_offset, col_offset in [(-2, -1), (-2, 1), (2, -1), (2, 1)]:  # adjacent roads
+                    if padded_board[row + row_offset + padding_width][col + col_offset + padding_width] == BUILDABLE:
+                        buildable_road_locations.append((row + row_offset, col + col_offset))
+
+        return list(set(buildable_road_locations)), list(set(buildable_village_locations))
+
+    def step(self, action, location, player_id):
+        row, col = location
+        if action == "build_village" or action == "build_road" and self.board[row][col] == BUILDABLE:
+            self.board[row][col] = player_id    # TODO add longest road check
+        elif action == "build_city" and self.board[row][col] == player_id:
+            self.board[row][col] = player_id * 10 + player_id
+        return self
+
+    def last(self):
+        for player in self.players:
+            if player.score >= 10:
+                return True
+        return False
+
+    def free_build_village(self):
+        buildable_locations = []
+        for n_row, row in enumerate(self.board):
+            if n_row % 2 == 0:
+                for n_col, col in enumerate(row):
+                    if self.check_village_buildable((n_row, n_col)):
+                        buildable_locations.append((n_row, n_col))
+
+        # choose
+        r.choice
+        # check adjacent 1 for roads
+
+
+        return buildable_locations
+
+
+env = Environment(
+    players=[BasicAgent(2, False), BasicAgent(3, False), BasicAgent(4, False), BasicAgent(5, False)],
+    visualize=False
+)
+env.board[0][6] = 2
+
+print(len(env.free_build_village()))
+
+#roads, villages = env.get_buildable_locations(env.players[0])
+
+
+'''gridDisplay = pygame.display.set_mode((200, 200))
+pygame.display.get_surface().fill((200, 200, 200))
+
+grid_node_width = 10
+grid_node_height = 10
+
+def create_square(x, y, color):
+    pygame.draw.rect(gridDisplay, color, [x, y, grid_node_width, grid_node_height])
+
+def vizualize_grid():
+    y = 0
+    for row in env.board:
+        x = 0
+        for item in row:
+            if item == 0:
+                create_square(x, y, (255, 255, 255))
+            else: create_square(x, y, (item*10, 0, 0))
+            x += grid_node_width
+        y += grid_node_height
+
+    pygame.display.update()
+
+
+vizualize_grid()
+
+while True:
+    pass'''
+
