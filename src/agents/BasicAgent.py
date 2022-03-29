@@ -81,8 +81,22 @@ class BasicAgent:
     def trade(self, trade_in):  # Trade with bank
         new_resources = list(self.resources.keys())
         new_resources.remove(trade_in)
-        self.resources[r.choice(new_resources)] += 1
+        traded_out = r.choice(new_resources)
+        self.resources[traded_out] += 1
         self.resources[trade_in] -= 4
+
+    def free_village_build(self, obs):   # Round 1
+        buildable_locations = obs.free_build_village()
+        village_location = r.choice(buildable_locations)
+        self.villages.append(village_location)
+        self.score += 1
+        return "build_village", village_location
+
+    def free_road_build(self, obs, village_location):
+        buildable_locations = obs.get_adjacent_roads(village_location)
+        road_location = r.choice(buildable_locations)
+        self.roads.append(road_location)
+        return "build_road", road_location
 
     def build_village(self, location):
         self.score += 1

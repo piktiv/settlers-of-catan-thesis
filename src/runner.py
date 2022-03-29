@@ -37,12 +37,28 @@ class Runner:
         self.episode += 1
         self.score = 0
 
+    def build_village(self, idx, locations): # Only for debug purposes
+        player = self.env.players[idx]
+        player.villages += locations
+        player.score = len(locations)
+        for location in locations:
+            row, col = location
+            self.env.board[row][col] = player.id
+
+    def build_road(self, idx, locations):
+        player = self.env.players[idx]
+        player.roads += locations
+        for location in locations:
+            row, col = location
+            self.env.board[row][col] = player.id
+
     def run(self, episodes):
-        self.env.players[0].roads += [(11, 8)]
-        self.env.players[0].villages += [(4, 8)]
-        self.env.board[4][8] = self.env.players[0].id
-        self.env.board[11][8] = self.env.players[0].id
-        self.env.players[0].score = 1
+
+        '''self.build_village(0, [(4, 8)])
+        self.build_road(0, [(11, 8)])
+
+        self.build_village(1, [(4, 12)])
+        self.build_road(1, [(5, 13)])'''
 
         self.env.print_board()
         while self.episode <= episodes:
@@ -50,8 +66,14 @@ class Runner:
 
             #obs = self.env.reset()
             # reset agents
+            turn_count = 0
+            start_order = self.env.players + list(reversed(self.env.players))
+            for player in start_order:
+                action, location = player.free_village_build(obs)
+                self.env.step(action, location, player.id)
+                action, location = player.free_road_build(obs, location)
+                self.env.step(action, location, player.id)
             while True:
-                # TODO round 1 place village and road
 
                 # For each player
                 for player in self.env.players:
@@ -60,30 +82,31 @@ class Runner:
                     obs.environment_step()
                     while True:
                         # Agent take action
-                        print(self.env.players[0].resources)
-                        print(self.agent.score)
+                        print("agent", self.agent.resources)
+                        print("player", self.env.players[1].resources)
                         action, location = player.step(obs)
                         obs = self.env.step(action, location, player.id)  # Take action on env
                         if action == "pass" or obs.last():
                             break
 
-
                         #self.score += obs.reward
                     if obs.last():
                         break
+                turn_count += 1
                 if obs.last():
                     break
             if len(self.env.players[0].roads) != len(set(self.env.players[0].roads)) or obs.last():
-                print(self.env.players[0].score)
-                print("villages", self.env.players[0].villages)
+                print("agent", self.env.players[0].score)
+                print("player", self.env.players[1].score)
+                '''print("villages", self.env.players[0].villages)
                 print("cities", self.env.players[0].cities)
-                print("roads", self.agent.roads)
+                print("roads", self.agent.roads)'''
                 print("roads", len(self.env.players[0].roads))
                 print("roads set", len(set(self.env.players[0].roads)))
+                print("roads", len(self.env.players[1].roads))
+                print("roads set", len(set(self.env.players[1].roads)))
                 self.env.print_board()
                 break
-            print(len(self.env.players[0].roads))
-            print(len(list(set(self.env.players[0].roads))))
 
             #self.summarize()
             print('Average: ', self.current_average)

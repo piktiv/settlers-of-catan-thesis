@@ -20,7 +20,7 @@ def main(unused_argv):
     )
 
     env = Environment(
-        players=[agent],
+        players=[agent, BasicAgent(9, False)],
         visualize=_CONFIG['visualize']
     )
 

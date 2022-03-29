@@ -75,10 +75,11 @@ class Tile:
 class Environment:
     def __init__(self, players, visualize):
         self.visualize = False
+
+        r.shuffle(players)
         self.players = players
 
         r.shuffle(TILE_TYPE)
-
         self.tiles = [Tile(coords, tile_type) for (coords, tile_type) in zip(TILE_ID, TILE_TYPE)]
         # Actual size 21, 23 (w, h)
         # 1 Represents buildable, even rows = villages/cities, odd rows = roads
@@ -239,21 +240,28 @@ class Environment:
                     if self.check_village_buildable((n_row, n_col)):
                         buildable_locations.append((n_row, n_col))
 
-        # choose
-        r.choice
-        # check adjacent 1 for roads
-
-
         return buildable_locations
 
+    def get_adjacent_roads(self, village_location):
+        row, col = village_location
+        padding_width = 1
+        buildable_road_locations = []
+        padded_board = np.pad(self.board, padding_width)
+        if row % 4 == 0:
+            for row_offset, col_offset in [(-1, 0), (1, -1), (1, 1)]:
+                if padded_board[row + row_offset + padding_width][col + col_offset + padding_width] == BUILDABLE:
+                    buildable_road_locations.append((row + row_offset, col + col_offset))
 
-env = Environment(
+        elif row % 2 == 0:
+            for row_offset, col_offset in [(-1, 1), (-1, -1), (1, 0)]:
+                if padded_board[row + row_offset + padding_width][col + col_offset + padding_width] == BUILDABLE:
+                    buildable_road_locations.append((row + row_offset, col + col_offset))
+
+        return buildable_road_locations
+'''env = Environment(
     players=[BasicAgent(2, False), BasicAgent(3, False), BasicAgent(4, False), BasicAgent(5, False)],
     visualize=False
-)
-env.board[0][6] = 2
-
-print(len(env.free_build_village()))
+)'''
 
 #roads, villages = env.get_buildable_locations(env.players[0])
 
