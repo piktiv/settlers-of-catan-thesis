@@ -1,9 +1,11 @@
 import numpy as np
 import random as r
+from src.agents import AbstractAgent
 
 
-class BasicAgent:
+class RandomAgent(AbstractAgent):
     def __init__(self, id, train):
+        super(RandomAgent, self).__init__()
         if id == 1:     # id must be > 1
             raise ValueError("Agent id need to be > 1")
 
@@ -15,7 +17,7 @@ class BasicAgent:
                           'wool': 0,
                           'grain': 0,
                           'ore': 0}
-        self.villages = []
+        self.villages = []      # TODO add constraints max 5 villages, 15 roads, 4 cities
         self.cities = []
         self.roads = []
         self.action_cards = []
@@ -32,7 +34,7 @@ class BasicAgent:
                 available_actions.append("build_village")
         if self.resources['grain'] >= 2 and self.resources['ore'] >= 3 and self.villages:
             available_actions.append("build_city")
-        for key, item in self.resources.items():
+        for key in self.resources.keys():   # TODO change so trade abundant resource for least resource
             if self.resources[key] >= 4:
                 available_actions.append("trade_" + key)
         # Trade bank/player
@@ -48,10 +50,11 @@ class BasicAgent:
                 buildable_village_locations.remove(village)
             if village in self.cities:
                 self.villages.remove(village)
-
         for road in self.roads:
             if road in buildable_road_locations:
                 buildable_road_locations.remove(road)
+        if buildable_village_locations or len(self.villages) > 2:     # Prioritize building villages
+            buildable_road_locations.clear()
 
         available_actions = self.get_available_actions(buildable_road_locations, buildable_village_locations)
 
@@ -80,8 +83,22 @@ class BasicAgent:
     def trade(self, trade_in):  # Trade with bank
         new_resources = list(self.resources.keys())
         new_resources.remove(trade_in)
-        self.resources[r.choice(new_resources)] += 1
+        traded_out = r.choice(new_resources)
+        self.resources[traded_out] += 1
         self.resources[trade_in] -= 4
+
+    def free_village_build(self, obs):   # Round 1
+        buildable_locations = obs.free_build_village()
+        village_location = r.choice(buildable_locations)
+        self.villages.append(village_location)
+        self.score += 1
+        return "build_village", village_location
+
+    def free_road_build(self, obs, village_location):
+        buildable_locations = obs.get_adjacent_roads(village_location)
+        road_location = r.choice(buildable_locations)
+        self.roads.append(road_location)
+        return "build_road", road_location
 
     def build_village(self, location):
         self.score += 1
@@ -98,9 +115,7 @@ class BasicAgent:
 
     def build_city(self, location):
         self.score += 1
-        print(f'building city {location}, current {self.villages}')
         self.villages.remove(location)
-        print(f'removed {location}, from {self.villages}')
         self.cities.append(location)
         self.resources['grain'] -= 2
         self.resources['ore'] -= 3

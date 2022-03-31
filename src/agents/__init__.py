@@ -1,1 +1,2 @@
-from .BasicAgent import BasicAgent
+from .AbstractAgent import AbstractAgent
+from .RandomAgent import RandomAgent

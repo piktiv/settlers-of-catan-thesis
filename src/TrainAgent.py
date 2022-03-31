@@ -1,26 +1,26 @@
 from absl import app
 from src.environment import Environment
 from src.runner import Runner
-from src.agents import BasicAgent
+from src.agents import *
 
 _CONFIG = dict(
     episodes=500,
     visualize=False,
     train=True,
-    agent=BasicAgent,
+    agent=RandomAgent,
     load_path='./pickles/'
 )
 
 
 def main(unused_argv):
 
-    agent = BasicAgent(
-        id=2,
+    agent = _CONFIG['agent'](
+        id=7,
         train=_CONFIG['train']
     )
 
     env = Environment(
-        players=[agent, BasicAgent(9, False)],
+        players=[agent, RandomAgent(9, False), RandomAgent(8, False), RandomAgent(6, False)],
         visualize=_CONFIG['visualize']
     )
 

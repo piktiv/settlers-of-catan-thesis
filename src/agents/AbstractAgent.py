@@ -2,23 +2,21 @@ import numpy as np
 import random as r
 
 
-class BasicAgent:
-    def __init__(self, id, train):
-        if id == 1:     # id must be > 1
-            raise ValueError("Agent id need to be > 1")
+class AbstractAgent:
 
-        self.id = id
-        self.train = train
-        self.score = 0
-        self.resources = {'brick': 0,
-                          'lumber': 0,
-                          'wool': 0,
-                          'grain': 0,
-                          'ore': 0}
-        self.villages = []      # TODO add constraints max 5 villages, 15 roads, 4 cities
-        self.cities = []
-        self.roads = []
-        self.action_cards = []
+    if id == 1:     # id must be > 1
+        raise ValueError("Agent id need to be > 1")
+
+    id = id
+    score = 0
+    resources = {'brick': 0,
+                      'lumber': 0,
+                      'wool': 0,
+                      'grain': 0,
+                      'ore': 0}
+    villages = []      # TODO add constraints max 5 villages, 15 roads, 4 cities
+    cities = []
+    roads = []
 
     def get_available_actions(self, buildable_road_locations, buildable_village_locations):
         available_actions = ["pass"]
@@ -41,25 +39,7 @@ class BasicAgent:
         return available_actions
 
     def step(self, obs):     # Obs -> observer
-        buildable_road_locations, buildable_village_locations = obs.get_buildable_locations(self)
-
-        for village in self.villages:   # TODO temporary solution sometimes village gets built twice
-            if village in buildable_village_locations:
-                buildable_village_locations.remove(village)
-            if village in self.cities:
-                self.villages.remove(village)
-        for road in self.roads:
-            if road in buildable_road_locations:
-                buildable_road_locations.remove(road)
-        if buildable_village_locations or len(self.villages) > 2:     # Prioritize building villages
-            buildable_road_locations.clear()
-
-        available_actions = self.get_available_actions(buildable_road_locations, buildable_village_locations)
-
-        action = r.choice(available_actions)
-        location = self.take_action(action, buildable_road_locations, buildable_village_locations)
-
-        return action, location
+        ...
 
     def take_action(self, action, buildable_road_locations, buildable_village_locations):
         location = (-1, -1)  # Undefined

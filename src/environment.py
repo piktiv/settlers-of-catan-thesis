@@ -1,6 +1,5 @@
 import numpy as np
 import random as r
-from src.agents import BasicAgent
 import pygame
 
 from collections import Counter
@@ -127,7 +126,7 @@ class Environment:
         for row in self.board:
             print("")
             for value in row:
-                if value == 0 or value in [3, 4, 5, 6]:
+                if value == 0 or value in [2, 3, 4, 5]:
                     print(" " * 4, end='')
                 else:
                     if len(str(value)) == 2:
@@ -154,7 +153,6 @@ class Environment:
                                 player.resources[tile.get_tile_type()] += 1
                             if self.board[tile.row + row_offset][tile.col + col_offset] == player.id * 10 + player.id:
                                 player.resources[tile.get_tile_type()] += 2
-                                # TODO City check (represent by double player id)
 
     # Check if neighboring nodes are not built upon represented by 1
     def check_village_buildable(self, location):
@@ -258,12 +256,13 @@ class Environment:
                     buildable_road_locations.append((row + row_offset, col + col_offset))
 
         return buildable_road_locations
-'''env = Environment(
-    players=[BasicAgent(2, False), BasicAgent(3, False), BasicAgent(4, False), BasicAgent(5, False)],
-    visualize=False
-)'''
 
-#roads, villages = env.get_buildable_locations(env.players[0])
+    def reset_env(self):
+        self.__init__(self.players, self.visualize)
+        return self
+
+    def reward(self):
+        result = sorted(self.env.players, key=lambda x: x.score, reverse=True)
 
 
 '''gridDisplay = pygame.display.set_mode((200, 200))

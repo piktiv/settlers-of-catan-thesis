@@ -2,6 +2,8 @@ import datetime
 import os
 import tensorflow as tf
 import numpy as np
+from itertools import chain
+
 from src.environment import Environment
 
 
@@ -37,7 +39,7 @@ class Runner:
         self.episode += 1
         self.score = 0
 
-    def build_village(self, idx, locations): # Only for debug purposes
+    def build_village(self, idx, locations):  # Only for debug purposes
         player = self.env.players[idx]
         player.villages += locations
         player.score = len(locations)
@@ -45,45 +47,40 @@ class Runner:
             row, col = location
             self.env.board[row][col] = player.id
 
-    def build_road(self, idx, locations):
+    def build_road(self, idx, locations):   # Only for debug purposes
         player = self.env.players[idx]
         player.roads += locations
         for location in locations:
             row, col = location
             self.env.board[row][col] = player.id
 
+    def get_ranking(self):
+        return sorted(self.env.players, key=lambda x: x.score, reverse=True)
+
     def run(self, episodes):
-
-        '''self.build_village(0, [(4, 8)])
-        self.build_road(0, [(11, 8)])
-
-        self.build_village(1, [(4, 12)])
-        self.build_road(1, [(5, 13)])'''
-
         self.env.print_board()
+        #obs = self.env
         while self.episode <= episodes:
-            obs = self.env      # Reset env
+            self.env.reset_env     # Reset env
+            obs = self.env
 
-            #obs = self.env.reset()
             # reset agents
             turn_count = 0
-            start_order = self.env.players + list(reversed(self.env.players))
+            start_order = chain(self.env.players, list(reversed(self.env.players)))
             for player in start_order:
                 action, location = player.free_village_build(obs)
                 self.env.step(action, location, player.id)
                 action, location = player.free_road_build(obs, location)
                 self.env.step(action, location, player.id)
             while True:
-
                 # For each player
                 for player in self.env.players:
-
                     # Throw dices, all gather resources
                     obs.environment_step()
                     while True:
                         # Agent take action
-                        print("agent", self.agent.resources)
-                        print("player", self.env.players[1].resources)
+                        print("agent", self.agent.id, self.agent.resources)
+                        print("player", self.env.players[1].id, self.env.players[1].resources)
                         action, location = player.step(obs)
                         obs = self.env.step(action, location, player.id)  # Take action on env
                         if action == "pass" or obs.last():
@@ -96,15 +93,11 @@ class Runner:
                 if obs.last():
                     break
             if len(self.env.players[0].roads) != len(set(self.env.players[0].roads)) or obs.last():
-                print("agent", self.env.players[0].score)
-                print("player", self.env.players[1].score)
-                '''print("villages", self.env.players[0].villages)
-                print("cities", self.env.players[0].cities)
-                print("roads", self.agent.roads)'''
-                print("roads", len(self.env.players[0].roads))
-                print("roads set", len(set(self.env.players[0].roads)))
-                print("roads", len(self.env.players[1].roads))
-                print("roads set", len(set(self.env.players[1].roads)))
+                ranking = self.get_ranking()
+                for rank, player in enumerate(ranking):
+                    print(f'Player {player.id} Place {rank + 1} Score {player.score}')
+                    print(f'Villages {player.villages} Cities {player.cities} Roads {player.roads}')
+                    print()
                 self.env.print_board()
                 break
 
