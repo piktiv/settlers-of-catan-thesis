@@ -259,7 +259,6 @@ class Environment:
 
     def reset_env(self):
         self.__init__(self.players, self.visualize)
-        return self
 
     def reward(self, agent):
         result = sorted(self.players, key=lambda x: x.score, reverse=True)
@@ -274,7 +273,6 @@ class Environment:
             return -1
         else:
             return 0
-
 
 '''width, height = 200, 200
 gridDisplay = pygame.display.set_mode((width, height))

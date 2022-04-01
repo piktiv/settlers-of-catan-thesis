@@ -3,10 +3,10 @@ import random as r
 from src.agents import AbstractAgent
 
 
-class RandomAgent(AbstractAgent):
+class SmartRandomAgent(AbstractAgent):
     def __init__(self, id, train=False):
-        super(RandomAgent, self).__init__()
-        if id == 1:     # id must be > 1
+        super(SmartRandomAgent, self).__init__()
+        if id == 1:  # id must be > 1
             raise ValueError("Agent id need to be > 1")
 
         self.id = id
@@ -17,10 +17,20 @@ class RandomAgent(AbstractAgent):
                           'wool': 0,
                           'grain': 0,
                           'ore': 0}
-        self.villages = []      # TODO add constraints max 5 villages, 15 roads, 4 cities
+        self.villages = []  # TODO add constraints max 5 villages, 15 roads, 4 cities
         self.cities = []
         self.roads = []
         self.action_cards = []
+
+    def key_with_max_resource(self):
+        v = list(self.resources.values())
+        k = list(self.resources.keys())
+        return k[v.index(max(v))]
+
+    def key_with_min_resource(self):
+        v = list(self.resources.values())
+        k = list(self.resources.keys())
+        return k[v.index(min(v))]
 
     def get_available_actions(self, buildable_road_locations, buildable_village_locations):
         available_actions = ["pass"]
@@ -35,18 +45,19 @@ class RandomAgent(AbstractAgent):
         if self.resources['grain'] >= 2 and self.resources['ore'] >= 3 and self.villages:
             available_actions.append("build_city")
 
-        for key in self.resources.keys():
-            if self.resources[key] >= 4:    # Purely random
-                available_actions.append("trade_" + key)
+        key = self.key_with_max_resource()  # Always trades resource that is most abundant
+        if self.resources[key] >= 4:
+            available_actions.append("trade_" + key)
+
         # Trade bank/player
         # Cards use/buy
 
         return available_actions
 
-    def step(self, obs):     # Obs -> observer
+    def step(self, obs):  # Obs -> observer
         buildable_road_locations, buildable_village_locations = obs.get_buildable_locations(self)
 
-        for village in self.villages:   # TODO temporary solution sometimes village gets built twice
+        for village in self.villages:  # TODO temporary solution sometimes village gets built twice
             if village in buildable_village_locations:
                 buildable_village_locations.remove(village)
             if village in self.cities:
@@ -54,6 +65,8 @@ class RandomAgent(AbstractAgent):
         for road in self.roads:
             if road in buildable_road_locations:
                 buildable_road_locations.remove(road)
+        if buildable_village_locations or len(self.villages) > 2:  # Prioritize building villages
+            buildable_road_locations.clear()
 
         available_actions = self.get_available_actions(buildable_road_locations, buildable_village_locations)
 
@@ -80,13 +93,11 @@ class RandomAgent(AbstractAgent):
 
     # TODO add ports and in env
     def trade(self, trade_in):  # Trade with bank
-        new_resources = list(self.resources.keys())
-        new_resources.remove(trade_in)
-        traded_out = r.choice(new_resources)
+        traded_out = self.key_with_min_resource()
         self.resources[traded_out] += 1
         self.resources[trade_in] -= 4
 
-    def free_village_build(self, obs):   # Round 1
+    def free_village_build(self, obs):  # Round 1
         buildable_locations = obs.free_build_village()
         village_location = r.choice(buildable_locations)
         self.villages.append(village_location)

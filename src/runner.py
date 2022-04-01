@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 from itertools import chain
 
+
 from src.environment import Environment
 
 
@@ -58,10 +59,17 @@ class Runner:
         return sorted(self.env.players, key=lambda x: x.score, reverse=True)
 
     def run(self, episodes):
-        self.env.print_board()
+        results = {
+            "SmartRandomAgent": 0,
+            "RandomAgent": 0
+        }
         #obs = self.env
         while self.episode <= episodes:
-            self.env.reset_env     # Reset env
+            self.env.reset_env()     # Reset env
+            self.env.print_board()
+            for player in self.env.players:
+                player.reset_agent()
+
             obs = self.env
 
             # reset agents
@@ -69,9 +77,9 @@ class Runner:
             start_order = chain(self.env.players, list(reversed(self.env.players)))
             for player in start_order:
                 action, location = player.free_village_build(obs)
-                self.env.step(action, location, player.id)
+                obs = self.env.step(action, location, player.id)
                 action, location = player.free_road_build(obs, location)
-                self.env.step(action, location, player.id)
+                obs = self.env.step(action, location, player.id)
             while True:
                 # For each player
                 for player in self.env.players:
@@ -79,8 +87,6 @@ class Runner:
                     obs.environment_step()
                     while True:
                         # Agent take action
-                        print("agent", self.agent.id, self.agent.resources)
-                        print("player", self.env.players[1].id, self.env.players[1].resources)
                         action, location = player.step(obs)
                         obs = self.env.step(action, location, player.id)  # Take action on env
                         if action == "pass" or obs.last():
@@ -89,18 +95,25 @@ class Runner:
                         #self.score += obs.reward
                     if obs.last():
                         break
-                turn_count += 1
+
                 if obs.last():
                     break
-            if len(self.env.players[0].roads) != len(set(self.env.players[0].roads)) or obs.last():
+            '''if len(self.env.players[0].roads) != len(set(self.env.players[0].roads)) or obs.last():
                 ranking = self.get_ranking()
                 for rank, player in enumerate(ranking):
-                    print(f'Player {player.id} Place {rank + 1} Score {player.score}')
+                    print(f'Player {player.id} {type(player).__name__} Place {rank + 1} Score {player.score}')
                     print(f'Villages {player.villages} Cities {player.cities} Roads {player.roads}')
                     print()
                 self.env.print_board()
                 print(self.env.reward(self.agent))
-                break
-
+                break'''
+            ranking = self.get_ranking()
+            print(ranking)
+            for i, player in enumerate(ranking):
+                results[type(player).__name__] += i
             #self.summarize()
             print('Average: ', self.current_average)
+            self.episode += 1
+
+        for key, item in results.items():
+            print(f'{key} wins {(1 - item / episodes) * 100}%')

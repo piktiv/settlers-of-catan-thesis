@@ -2,6 +2,7 @@ from absl import app
 from src.environment import Environment
 from src.runner import Runner
 from src.agents import *
+import timeit
 
 _CONFIG = dict(
     episodes=500,
@@ -20,7 +21,7 @@ def main(unused_argv):
     )
 
     env = Environment(
-        players=[agent, RandomAgent(9, False), RandomAgent(8, False), RandomAgent(6, False)],
+        players=[agent, SmartRandomAgent(9)],
         visualize=_CONFIG['visualize']
     )
 
@@ -35,4 +36,5 @@ def main(unused_argv):
 
 
 if __name__ == "__main__":
-    app.run(main)
+    print(timeit.timeit(stmt=app.run(main)))
+    #app.run(main)
