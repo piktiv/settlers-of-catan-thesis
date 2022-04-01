@@ -126,7 +126,7 @@ class Environment:
         for row in self.board:
             print("")
             for value in row:
-                if value == 0 or value in [2, 3, 4, 5]:
+                if value == 0 or value in []:
                     print(" " * 4, end='')
                 else:
                     if len(str(value)) == 2:
@@ -261,35 +261,51 @@ class Environment:
         self.__init__(self.players, self.visualize)
         return self
 
-    def reward(self):
-        result = sorted(self.env.players, key=lambda x: x.score, reverse=True)
+    def reward(self, agent):
+        result = sorted(self.players, key=lambda x: x.score, reverse=True)
+        placement = result.index(agent)
+        if placement == 0:
+            return 10
+        elif placement == 1:
+            return 7
+        elif placement == 2:
+            return 3
+        elif placement == 3:
+            return -1
+        else:
+            return 0
 
 
-'''gridDisplay = pygame.display.set_mode((200, 200))
-pygame.display.get_surface().fill((200, 200, 200))
+'''width, height = 200, 200
+gridDisplay = pygame.display.set_mode((width, height))
+pygame.display.get_surface().fill((width, height, 200))
 
 grid_node_width = 10
 grid_node_height = 10
 
+
 def create_square(x, y, color):
     pygame.draw.rect(gridDisplay, color, [x, y, grid_node_width, grid_node_height])
 
-def vizualize_grid():
+
+def visualize_grid():
     y = 0
     for row in env.board:
         x = 0
         for item in row:
             if item == 0:
                 create_square(x, y, (255, 255, 255))
-            else: create_square(x, y, (item*10, 0, 0))
+            else:
+                create_square(x, y, (item*10, 0, 0))
             x += grid_node_width
         y += grid_node_height
 
     pygame.display.update()
 
 
-vizualize_grid()
+visualize_grid()
 
 while True:
-    pass'''
+    pass
 
+'''

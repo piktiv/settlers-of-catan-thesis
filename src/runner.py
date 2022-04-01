@@ -99,6 +99,7 @@ class Runner:
                     print(f'Villages {player.villages} Cities {player.cities} Roads {player.roads}')
                     print()
                 self.env.print_board()
+                print(self.env.reward(self.agent))
                 break
 
             #self.summarize()

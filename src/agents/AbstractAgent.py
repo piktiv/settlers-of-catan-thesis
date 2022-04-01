@@ -57,7 +57,6 @@ class AbstractAgent:
             getattr(self, action[:5])(action[6:])
         return location
 
-    # TODO add ports and in env
     def trade(self, trade_in):  # Trade with bank
         new_resources = list(self.resources.keys())
         new_resources.remove(trade_in)
