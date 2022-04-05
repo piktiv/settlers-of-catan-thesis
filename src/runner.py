@@ -109,12 +109,8 @@ class Runner:
 
             for player in self.env.players:
                 print(f'{player.id} {player.villages} {player.cities}')
-                print(player.steps)
-                steps_game.append(player.steps)
-                player.steps = 0
 
         for key, item in results.items():
             print(f'{key} wins {(item / episodes) * 100}%')
 
-        print(sum(steps_game) / len(steps_game))
 

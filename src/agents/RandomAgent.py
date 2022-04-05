@@ -6,7 +6,7 @@ from src.agents import AbstractAgent
 class RandomAgent(AbstractAgent):
     def __init__(self, id, train=False):
         super(RandomAgent, self).__init__(id)
-        self.steps = 0
+
         if id == 1:     # id must be > 1
             raise ValueError("Agent id need to be > 1")
 
@@ -30,7 +30,7 @@ class RandomAgent(AbstractAgent):
 
         action = r.choice(available_actions)
         location = self.take_action(action, buildable_road_locations, buildable_village_locations)
-        self.steps += 1
+
         return action, location
 
     def take_action(self, action, buildable_road_locations, buildable_village_locations):

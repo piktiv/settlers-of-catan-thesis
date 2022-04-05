@@ -73,8 +73,6 @@ class DQNAgent(AbstractAgent):
         location = self.take_action(action, buildable_road_locations, buildable_village_locations)
         # Add experience and check if train
 
-
-
         return action, location
 
     def take_action(self, action, buildable_road_locations, buildable_village_locations):
