@@ -3,14 +3,12 @@ import os
 import tensorflow as tf
 import numpy as np
 from itertools import chain
-
-
 from src.environment import Environment
 
 
 class Runner:
     def __init__(self, agent, env, train, load_path):
-
+        tf.config.run_functions_eagerly(False)
         self.agent = agent
         self.env = env
         self.train = train  # run only or train_model model?
@@ -24,6 +22,7 @@ class Runner:
 
         # self.writer = tf.summary.FileWriter(self.path, tf.get_default_graph())
         #self.writer = tf.compat.v1.summary.FileWriter(self.path)
+        #self.writer = tf.summary.create_file_writer(self.path)
 
         if not self.train and load_path is not None and os.path.isdir(load_path):
             self.agent.load_model(load_path)
@@ -63,10 +62,11 @@ class Runner:
             "SmartRandomAgent": 0,
             "RandomAgent": 0
         }
+        steps_game = []
         #obs = self.env
         while self.episode <= episodes:
             self.env.reset_env()     # Reset env
-            self.env.print_board()
+
             for player in self.env.players:
                 player.reset_agent()
 
@@ -98,22 +98,23 @@ class Runner:
 
                 if obs.last():
                     break
-            '''if len(self.env.players[0].roads) != len(set(self.env.players[0].roads)) or obs.last():
-                ranking = self.get_ranking()
-                for rank, player in enumerate(ranking):
-                    print(f'Player {player.id} {type(player).__name__} Place {rank + 1} Score {player.score}')
-                    print(f'Villages {player.villages} Cities {player.cities} Roads {player.roads}')
-                    print()
-                self.env.print_board()
-                print(self.env.reward(self.agent))
-                break'''
+            self.env.print_board()
             ranking = self.get_ranking()
-            print(ranking)
-            for i, player in enumerate(ranking):
+
+            for i, player in enumerate(reversed(ranking)):
                 results[type(player).__name__] += i
             #self.summarize()
             print('Average: ', self.current_average)
             self.episode += 1
 
+            for player in self.env.players:
+                print(f'{player.id} {player.villages} {player.cities}')
+                print(player.steps)
+                steps_game.append(player.steps)
+                player.steps = 0
+
         for key, item in results.items():
-            print(f'{key} wins {(1 - item / episodes) * 100}%')
+            print(f'{key} wins {(item / episodes) * 100}%')
+
+        print(sum(steps_game) / len(steps_game))
+

@@ -1,16 +1,16 @@
 import numpy as np
 import random as r
 from src.agents import AbstractAgent
+from src.expreplay import ExperienceReplay, Experience
 
 
-class SmartRandomAgent(AbstractAgent):
+class DQNAgent(AbstractAgent):
     def __init__(self, id, train=False):
-        super(SmartRandomAgent, self).__init__(id)
-        self.steps = 0
+        super(DQNAgent, self).__init__()
         if id == 1:  # id must be > 1
             raise ValueError("Agent id need to be > 1")
 
-        '''self.id = id
+        self.id = id
         self.score = 0
         self.train = train
         self.resources = {'brick': 0,
@@ -21,7 +21,9 @@ class SmartRandomAgent(AbstractAgent):
         self.villages = []  # TODO add constraints max 5 villages, 15 roads, 4 cities
         self.cities = []
         self.roads = []
-        self.action_cards = []'''
+        self.action_cards = []
+
+        self.epsilon = 0.99
 
     def key_with_max_resource(self):
         v = list(self.resources.values())
@@ -60,15 +62,19 @@ class SmartRandomAgent(AbstractAgent):
 
     def step(self, obs):  # Obs -> observer
         buildable_road_locations, buildable_village_locations = obs.get_buildable_locations(self)
-
-        if buildable_village_locations or len(self.villages) > 2:  # Prioritize building villages
-            buildable_road_locations.clear()
-
         available_actions = self.get_available_actions(buildable_road_locations, buildable_village_locations)
 
+        # Exploration
+
+        # Approximate Q
+
+        # Action masking (get legal action with highest Q) -> take action
         action = r.choice(available_actions)
         location = self.take_action(action, buildable_road_locations, buildable_village_locations)
-        self.steps += 1
+        # Add experience and check if train
+
+
+
         return action, location
 
     def take_action(self, action, buildable_road_locations, buildable_village_locations):
@@ -105,6 +111,26 @@ class SmartRandomAgent(AbstractAgent):
         road_location = r.choice(buildable_locations)
         self.roads.append(road_location)
         return "build_road", road_location
+
+    def build_village(self, location):
+        self.score += 1
+        self.villages.append(location)
+        self.resources['brick'] -= 1
+        self.resources['lumber'] -= 1
+        self.resources['wool'] -= 1
+        self.resources['grain'] -= 1
+
+    def build_road(self, location):
+        self.roads.append(location)
+        self.resources['brick'] -= 1
+        self.resources['lumber'] -= 1
+
+    def build_city(self, location):
+        self.score += 1
+        self.villages.remove(location)
+        self.cities.append(location)
+        self.resources['grain'] -= 2
+        self.resources['ore'] -= 3
 
     def reset_agent(self):
         self.__init__(self.id)

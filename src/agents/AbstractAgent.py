@@ -7,20 +7,25 @@ class AbstractAgent:
     if id == 1:     # id must be > 1
         raise ValueError("Agent id need to be > 1")
 
-    id = id
-    score = 0
-    resources = {'brick': 0,
-                      'lumber': 0,
-                      'wool': 0,
-                      'grain': 0,
-                      'ore': 0}
-    villages = []      # TODO add constraints max 5 villages, 15 roads, 4 cities
-    cities = []
-    roads = []
+    def __init__(self, id, train=False):
+        self.id = id
+        self.score = 0
+        self.train = train
+        self.resources = {
+            'brick': 0,
+            'lumber': 0,
+            'wool': 0,
+            'grain': 0,
+            'ore': 0
+        }
+        self.villages = []      # TODO add constraints max 5 villages, 15 roads, 4 cities
+        self.cities = []
+        self.roads = []
 
     def get_available_actions(self, buildable_road_locations, buildable_village_locations):
         available_actions = ["pass"]
 
+        # TODO Change available actions into dict where action is key and value is positions
         if buildable_road_locations:
             if self.resources['brick'] >= 1 and self.resources['lumber'] >= 1:
                 available_actions.append("build_road")

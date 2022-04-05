@@ -5,11 +5,12 @@ from src.agents import AbstractAgent
 
 class RandomAgent(AbstractAgent):
     def __init__(self, id, train=False):
-        super(RandomAgent, self).__init__()
+        super(RandomAgent, self).__init__(id)
+        self.steps = 0
         if id == 1:     # id must be > 1
             raise ValueError("Agent id need to be > 1")
 
-        self.id = id
+        '''self.id = id
         self.score = 0
         self.train = train
         self.resources = {'brick': 0,
@@ -20,46 +21,16 @@ class RandomAgent(AbstractAgent):
         self.villages = []      # TODO add constraints max 5 villages, 15 roads, 4 cities
         self.cities = []
         self.roads = []
-        self.action_cards = []
-
-    def get_available_actions(self, buildable_road_locations, buildable_village_locations):
-        available_actions = ["pass"]
-
-        if buildable_road_locations:
-            if self.resources['brick'] >= 1 and self.resources['lumber'] >= 1:
-                available_actions.append("build_road")
-        if buildable_village_locations:
-            if self.resources['brick'] >= 1 and self.resources['lumber'] >= 1 \
-                    and self.resources['wool'] >= 1 and self.resources['grain'] >= 1:
-                available_actions.append("build_village")
-        if self.resources['grain'] >= 2 and self.resources['ore'] >= 3 and self.villages:
-            available_actions.append("build_city")
-
-        for key in self.resources.keys():
-            if self.resources[key] >= 4:    # Purely random
-                available_actions.append("trade_" + key)
-        # Trade bank/player
-        # Cards use/buy
-
-        return available_actions
+        self.action_cards = []'''
 
     def step(self, obs):     # Obs -> observer
         buildable_road_locations, buildable_village_locations = obs.get_buildable_locations(self)
-
-        for village in self.villages:   # TODO temporary solution sometimes village gets built twice
-            if village in buildable_village_locations:
-                buildable_village_locations.remove(village)
-            if village in self.cities:
-                self.villages.remove(village)
-        for road in self.roads:
-            if road in buildable_road_locations:
-                buildable_road_locations.remove(road)
 
         available_actions = self.get_available_actions(buildable_road_locations, buildable_village_locations)
 
         action = r.choice(available_actions)
         location = self.take_action(action, buildable_road_locations, buildable_village_locations)
-
+        self.steps += 1
         return action, location
 
     def take_action(self, action, buildable_road_locations, buildable_village_locations):
@@ -98,26 +69,6 @@ class RandomAgent(AbstractAgent):
         road_location = r.choice(buildable_locations)
         self.roads.append(road_location)
         return "build_road", road_location
-
-    def build_village(self, location):
-        self.score += 1
-        self.villages.append(location)
-        self.resources['brick'] -= 1
-        self.resources['lumber'] -= 1
-        self.resources['wool'] -= 1
-        self.resources['grain'] -= 1
-
-    def build_road(self, location):
-        self.roads.append(location)
-        self.resources['brick'] -= 1
-        self.resources['lumber'] -= 1
-
-    def build_city(self, location):
-        self.score += 1
-        self.villages.remove(location)
-        self.cities.append(location)
-        self.resources['grain'] -= 2
-        self.resources['ore'] -= 3
 
     def reset_agent(self):
         self.__init__(self.id)

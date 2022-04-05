@@ -214,6 +214,15 @@ class Environment:
                     if padded_board[row + row_offset + padding_width][col + col_offset + padding_width] == BUILDABLE:
                         buildable_road_locations.append((row + row_offset, col + col_offset))
 
+        for village in player.villages:   # TODO temporary solution sometimes village gets built twice
+            if village in buildable_village_locations:
+                buildable_village_locations.remove(village)
+            if village in player.cities:
+                player.villages.remove(village)
+        for road in player.roads:
+            if road in buildable_road_locations:
+                buildable_road_locations.remove(road)
+
         return list(set(buildable_road_locations)), list(set(buildable_village_locations))
 
     def step(self, action, location, player_id):
@@ -273,6 +282,7 @@ class Environment:
             return -1
         else:
             return 0
+
 
 '''width, height = 200, 200
 gridDisplay = pygame.display.set_mode((width, height))

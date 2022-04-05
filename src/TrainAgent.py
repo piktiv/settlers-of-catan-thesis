@@ -2,10 +2,10 @@ from absl import app
 from src.environment import Environment
 from src.runner import Runner
 from src.agents import *
-import timeit
+
 
 _CONFIG = dict(
-    episodes=500,
+    episodes=100,
     visualize=False,
     train=True,
     agent=RandomAgent,
@@ -36,5 +36,4 @@ def main(unused_argv):
 
 
 if __name__ == "__main__":
-    print(timeit.timeit(stmt=app.run(main)))
-    #app.run(main)
+    app.run(main)
