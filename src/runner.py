@@ -66,7 +66,7 @@ class Runner:
         #obs = self.env
         while self.episode <= episodes:
             self.env.reset_env()     # Reset env
-
+            self.env.print_board()
             for player in self.env.players:
                 player.reset_agent()
 
@@ -112,5 +112,6 @@ class Runner:
 
         for key, item in results.items():
             print(f'{key} wins {(item / episodes) * 100}%')
+
 
 

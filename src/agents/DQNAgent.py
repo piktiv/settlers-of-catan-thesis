@@ -2,6 +2,7 @@ import numpy as np
 import random as r
 from src.agents import AbstractAgent
 from src.expreplay import ExperienceReplay, Experience
+from qmodel import Model
 
 
 class DQNAgent(AbstractAgent):
@@ -23,7 +24,7 @@ class DQNAgent(AbstractAgent):
         self.roads = []
         self.action_cards = []
 
-        self.epsilon = 0.99
+        self._EPSILON = 0.99
 
     def key_with_max_resource(self):
         v = list(self.resources.values())
@@ -65,8 +66,13 @@ class DQNAgent(AbstractAgent):
         available_actions = self.get_available_actions(buildable_road_locations, buildable_village_locations)
 
         # Exploration
+        if r.random() < self._EPSILON and self.train:  # Choose random direction
+            action = np.random.choice(available_actions)
+            location = self.take_action(action, buildable_road_locations, buildable_village_locations)
+        else:
+            pass
+            # Approximate Q 1. Predict q_values 2. argmax(q_values)
 
-        # Approximate Q
 
         # Action masking (get legal action with highest Q) -> take action
         action = r.choice(available_actions)

@@ -5,7 +5,7 @@ from src.agents import *
 
 
 _CONFIG = dict(
-    episodes=5,
+    episodes=10,
     visualize=False,
     train=True,
     agent=RandomAgent,
