@@ -5,6 +5,7 @@ import numpy as np
 from itertools import chain
 from src.environment import Environment
 
+from itertools import permutations
 
 class Runner:
     def __init__(self, agent, env, train, load_path):
@@ -62,6 +63,7 @@ class Runner:
             "SmartRandomAgent": 0,
             "RandomAgent": 0
         }
+
         steps_game = []
         #obs = self.env
         while self.episode <= episodes:
@@ -112,6 +114,8 @@ class Runner:
 
         for key, item in results.items():
             print(f'{key} wins {(item / episodes) * 100}%')
+
+
 
 
 

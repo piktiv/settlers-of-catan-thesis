@@ -1,8 +1,9 @@
 import numpy as np
 import random as r
-import pygame
+#import pygame
 
 from collections import Counter
+from itertools import permutations
 
 # Tile location in matrix
 TILE_ID = [
@@ -72,13 +73,14 @@ class Tile:
 
 
 class Environment:
-    def __init__(self, players, visualize):
+    def __init__(self, players, visualize=False):
         self.visualize = False
-
+        self.shuffle = True     # Shuffle tiles
         r.shuffle(players)
         self.players = players
 
         self.board = []
+        self.tiles = []
         self.create_board()
 
         # Villages 54, Cities 54, Roads 72, Trades 20
@@ -87,13 +89,18 @@ class Environment:
         road_locations = [x for x in buildable_locations if x[0] % 2 != 0]
 
         self.action_space = []
-        self.action_space.extend(village_locations)
-        self.action_space.extend(village_locations)
-        self.action_space.extend(road_locations)
+        self.action_space.extend(village_locations)     # First 54 cities
+        self.action_space.extend(village_locations)     # Second 54 cities
+        self.action_space.extend(road_locations)        # Road 20 locations
+        self.action_space.extend([x for x in permutations(self.players[0].resources, 2)])
+        self.action_space.append(("pass", 0))
 
     def create_board(self):
-        r.shuffle(TILE_TYPE)
+        if self.shuffle:
+            r.shuffle(TILE_TYPE)
         self.tiles = [Tile(coords, tile_type) for (coords, tile_type) in zip(TILE_ID, TILE_TYPE)]
+        if self.shuffle:
+            r.shuffle(self.tiles)
         # Actual size 21, 23 (w, h)
         # 1 Represents buildable, even rows = villages/cities, odd rows = roads
         self.board = np.array(

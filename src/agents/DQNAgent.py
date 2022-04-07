@@ -2,29 +2,21 @@ import numpy as np
 import random as r
 from src.agents import AbstractAgent
 from src.expreplay import ExperienceReplay, Experience
-from qmodel import Model
+from src.qmodel import q_model
+from src.environment import Environment
+
+ENV = Environment([AbstractAgent(0)])
 
 
 class DQNAgent(AbstractAgent):
     def __init__(self, id, train=False):
-        super(DQNAgent, self).__init__()
+        super(DQNAgent, self).__init__(id)
         if id == 1:  # id must be > 1
             raise ValueError("Agent id need to be > 1")
 
-        self.id = id
-        self.score = 0
-        self.train = train
-        self.resources = {'brick': 0,
-                          'lumber': 0,
-                          'wool': 0,
-                          'grain': 0,
-                          'ore': 0}
-        self.villages = []  # TODO add constraints max 5 villages, 15 roads, 4 cities
-        self.cities = []
-        self.roads = []
-        self.action_cards = []
-
+        self.network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
         self._EPSILON = 0.99
+        self.last_action = None
 
     def key_with_max_resource(self):
         v = list(self.resources.values())
@@ -73,6 +65,7 @@ class DQNAgent(AbstractAgent):
             pass
             # Approximate Q 1. Predict q_values 2. argmax(q_values)
 
+        # Save Experience
 
         # Action masking (get legal action with highest Q) -> take action
         action = r.choice(available_actions)

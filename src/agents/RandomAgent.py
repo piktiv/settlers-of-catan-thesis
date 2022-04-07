@@ -10,19 +10,6 @@ class RandomAgent(AbstractAgent):
         if id == 1:     # id must be > 1
             raise ValueError("Agent id need to be > 1")
 
-        '''self.id = id
-        self.score = 0
-        self.train = train
-        self.resources = {'brick': 0,
-                          'lumber': 0,
-                          'wool': 0,
-                          'grain': 0,
-                          'ore': 0}
-        self.villages = []      # TODO add constraints max 5 villages, 15 roads, 4 cities
-        self.cities = []
-        self.roads = []
-        self.action_cards = []'''
-
     def step(self, obs):     # Obs -> observer
         buildable_road_locations, buildable_village_locations = obs.get_buildable_locations(self)
 
