@@ -69,15 +69,14 @@ class Runner:
         while self.episode <= episodes:
             self.env.reset_env()     # Reset env
             self.env.print_board()
+
             for player in self.env.players:
                 player.reset_agent()
 
             obs = self.env
 
-            # reset agents
-            turn_count = 0
             start_order = chain(self.env.players, list(reversed(self.env.players)))
-            for player in start_order:
+            for player in start_order:  # Game start
                 action, location = player.free_village_build(obs)
                 obs = self.env.step(action, location, player.id)
                 action, location = player.free_road_build(obs, location)
@@ -87,19 +86,25 @@ class Runner:
                 for player in self.env.players:
                     # Throw dices, all gather resources
                     obs.environment_step()
-                    while True:
+                    while action != "pass" or not obs.last():     # Player takes action until pass action is executed
                         # Agent take action
                         action, location = player.step(obs)
                         obs = self.env.step(action, location, player.id)  # Take action on env
+                        # TODO Maybe put agent Experience here so that next state is not diluted with other players act
+                        if player == self.agent:
+                            self.agent.save_experience(
+                                player.state, action, obs.reward, obs.last(), obs.board
+                            )
+
                         if action == "pass" or obs.last():
                             break
 
-                        #self.score += obs.reward
                     if obs.last():
                         break
 
                 if obs.last():
                     break
+
             self.env.print_board()
             ranking = self.get_ranking()
 

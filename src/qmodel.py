@@ -14,7 +14,7 @@ def q_model(input_shape, action_space):
     x = Conv2D(64, kernel_size=3, strides=1, activation='relu', padding='same')(x)
     x = Flatten()(x)
 
-    # Hidden Layer
+    # Hidden Layer he_uniform/he_normal
     x = Dense(512, activation="relu", kernel_initializer='he_uniform')(x)
     x = Dense(256, activation="relu", kernel_initializer='he_uniform')(x)
     x = Dense(64, activation="relu", kernel_initializer='he_uniform')(x)

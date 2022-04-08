@@ -16,6 +16,10 @@ class DQNAgent(AbstractAgent):
 
         self.network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
         self._EPSILON = 0.99
+        self.experience_replay = ExperienceReplay()
+        self.min_exp_len = 6000
+        self.batch_size = 32
+        self.state = None
         self.last_action = None
 
     def key_with_max_resource(self):
@@ -62,17 +66,28 @@ class DQNAgent(AbstractAgent):
             action = np.random.choice(available_actions)
             location = self.take_action(action, buildable_road_locations, buildable_village_locations)
         else:
-            pass
-            # Approximate Q 1. Predict q_values 2. argmax(q_values)
+            # Approximate Q
+            q_values = self.network.predict(obs.board)
 
-        # Save Experience
+            # Action masking (get legal action with highest Q) -> take action
 
-        # Action masking (get legal action with highest Q) -> take action
-        action = r.choice(available_actions)
-        location = self.take_action(action, buildable_road_locations, buildable_village_locations)
+        if self.experience_replay.__len__() > self.min_exp_len and self.train:
+            self.train_agent()
+
+
         # Add experience and check if train
+        self.state = obs.board
+        self.last_action = action
 
         return action, location
+
+    def train_agent(self):
+        experiences = self.experience_replay.sample(self.batch_size)
+
+    def save_experience(self, state, action, reward, done, next_state):
+        self.experience_replay.append(
+            Experience(state, action, reward, done, next_state)
+            )
 
     def take_action(self, action, buildable_road_locations, buildable_village_locations):
         location = (-1, -1)  # Undefined
