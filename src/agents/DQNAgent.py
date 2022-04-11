@@ -9,13 +9,14 @@ ENV = Environment([AbstractAgent(0)])
 
 
 class DQNAgent(AbstractAgent):
-    def __init__(self, id, train=False):
-        super(DQNAgent, self).__init__(id)
+    def __init__(self, id, train):
+        super(DQNAgent, self).__init__(id, train)
         if id == 1:  # id must be > 1
             raise ValueError("Agent id need to be > 1")
 
         self.network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
         self._EPSILON = 0.99
+        self._EPSILON_DECAY = 0.0001
         self.experience_replay = ExperienceReplay()
         self.min_exp_len = 6000
         self.batch_size = 32
@@ -32,53 +33,61 @@ class DQNAgent(AbstractAgent):
         k = list(self.resources.keys())
         return k[v.index(min(v))]
 
-    def get_available_actions(self, buildable_road_locations, buildable_village_locations):
-        available_actions = ["pass"]
+    def action_masking(self, q_values, obs, buildable_village_locations, buildable_road_locations):
+        for i, (action, location) in enumerate(obs.action_space):
+            if action == "build_village":
+                if location not in buildable_village_locations:
+                    q_values[i] = -999
+            if action == "build_city":
+                if location not in self.villages:
+                    q_values[i] = -999
+            if action == "build_road":
+                if location not in buildable_road_locations:
+                    q_values[i] = -999
+            if action == "trade":
+                trade_in, trade_out = location
+                if self.resources[trade_in] < 4:
+                    q_values[i] = -999
 
-        if buildable_road_locations:
-            if self.resources['brick'] >= 1 and self.resources['lumber'] >= 1:
-                available_actions.append("build_road")
-        if buildable_village_locations:
-            if self.resources['brick'] >= 1 and self.resources['lumber'] >= 1 \
-                    and self.resources['wool'] >= 1 and self.resources['grain'] >= 1:
-                available_actions.append("build_village")
-        if self.resources['grain'] >= 2 and self.resources['ore'] >= 3 and self.villages:
-            available_actions.append("build_city")
-
-        key = self.key_with_max_resource()  # Always trades resource that is most abundant
-        if self.resources[key] >= 4:
-            available_actions.append("trade_" + key)
-
-        # Drops win rate to 60% from 70%
-        '''if not available_actions:
-            available_actions.append("pass")'''
-        # Trade bank/player
-        # Cards use/buy
-
-        return available_actions
+        return q_values
 
     def step(self, obs):  # Obs -> observer
         buildable_road_locations, buildable_village_locations = obs.get_buildable_locations(self)
+
         available_actions = self.get_available_actions(buildable_road_locations, buildable_village_locations)
+        print(available_actions)
 
         # Exploration
-        if r.random() < self._EPSILON and self.train:  # Choose random direction
-            action = np.random.choice(available_actions)
-            location = self.take_action(action, buildable_road_locations, buildable_village_locations)
-        else:
-            # Approximate Q
-            q_values = self.network.predict(obs.board)
+        num = r.random()
 
-            # Action masking (get legal action with highest Q) -> take action
+
+        if num > self._EPSILON and self.train:  # Choose random direction
+            action = np.random.choice(available_actions)    # Action is chosen uniformly
+            location = self.take_action(action, buildable_road_locations, buildable_village_locations)
+            self._EPSILON *= 1 - self._EPSILON_DECAY
+        else:
+            q_values = self.network.predict(np.array(obs.board.reshape([1, obs.board.shape[0], obs.board.shape[1], 1])))
+            q_values = np.squeeze(q_values)
+
+            masked_q_values = self.action_masking(q_values, obs, buildable_village_locations, buildable_road_locations)
+            action, location = obs.action_space[np.argmax(masked_q_values)]
+
+            if "build" in action:
+                getattr(self, action)(location)
+            elif "trade" in action:
+                trade_in, trade_out = location
+                self.trade(trade_in, trade_out)
+
+            print(action, location)
+            print(f'villages {self.villages} cities {self.cities} roads {self.roads}')
 
         if self.experience_replay.__len__() > self.min_exp_len and self.train:
             self.train_agent()
 
-
         # Add experience and check if train
         self.state = obs.board
         self.last_action = action
-
+        print("Epsilon", self._EPSILON)
         return action, location
 
     def train_agent(self):
@@ -102,12 +111,18 @@ class DQNAgent(AbstractAgent):
             location = r.choice(self.villages)
             getattr(self, action)(location)
         elif "trade_" in action:
-            getattr(self, action[:5])(action[6:])
+            self.random_trade(action[6:])
+
         return location
 
-    # TODO add ports and in env
-    def trade(self, trade_in):  # Trade with bank max resource for min resource
-        traded_out = self.key_with_min_resource()
+    def random_trade(self, trade_in):  # Trade with bank
+        new_resources = list(self.resources.keys())
+        new_resources.remove(trade_in)
+        traded_out = r.choice(new_resources)
+        self.resources[traded_out] += 1
+        self.resources[trade_in] -= 4
+
+    def trade(self, trade_in, traded_out):  # Trade with bank max resource for min resource
         self.resources[traded_out] += 1
         self.resources[trade_in] -= 4
 
@@ -145,7 +160,12 @@ class DQNAgent(AbstractAgent):
         self.resources['ore'] -= 3
 
     def reset_agent(self):
-        self.__init__(self.id)
+        self.score = 0
+        for resource in self.resources.keys():
+            self.resources[resource] = 0
+        self.villages = []
+        self.cities = []
+        self.roads = []
 
     def save_model(self, path):
         pass

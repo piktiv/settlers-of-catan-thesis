@@ -7,6 +7,7 @@ from src.environment import Environment
 
 from itertools import permutations
 
+
 class Runner:
     def __init__(self, agent, env, train, load_path):
         tf.config.run_functions_eagerly(False)
@@ -40,28 +41,13 @@ class Runner:
         self.episode += 1
         self.score = 0
 
-    def build_village(self, idx, locations):  # Only for debug purposes
-        player = self.env.players[idx]
-        player.villages += locations
-        player.score = len(locations)
-        for location in locations:
-            row, col = location
-            self.env.board[row][col] = player.id
-
-    def build_road(self, idx, locations):   # Only for debug purposes
-        player = self.env.players[idx]
-        player.roads += locations
-        for location in locations:
-            row, col = location
-            self.env.board[row][col] = player.id
-
     def get_ranking(self):
         return sorted(self.env.players, key=lambda x: x.score, reverse=True)
 
     def run(self, episodes):
         results = {
-            "SmartRandomAgent": 0,
-            "RandomAgent": 0
+            type(self.agent).__name__: 0,
+            "SmartRandomAgent": 0
         }
 
         steps_game = []
@@ -81,6 +67,7 @@ class Runner:
                 obs = self.env.step(action, location, player.id)
                 action, location = player.free_road_build(obs, location)
                 obs = self.env.step(action, location, player.id)
+
             while True:
                 # For each player
                 for player in self.env.players:
@@ -89,11 +76,12 @@ class Runner:
                     while action != "pass" or not obs.last():     # Player takes action until pass action is executed
                         # Agent take action
                         action, location = player.step(obs)
+                        print("taking", action, location)
                         obs = self.env.step(action, location, player.id)  # Take action on env
-                        # TODO Maybe put agent Experience here so that next state is not diluted with other players act
-                        if player == self.agent:
+
+                        if player == self.agent and type(self.agent).__name__ == 'DQNAgent':
                             self.agent.save_experience(
-                                player.state, action, obs.reward, obs.last(), obs.board
+                                player.state, (action, location), obs.reward, obs.last(), obs.board
                             )
 
                         if action == "pass" or obs.last():

@@ -12,7 +12,6 @@ class RandomAgent(AbstractAgent):
 
     def step(self, obs):     # Obs -> observer
         buildable_road_locations, buildable_village_locations = obs.get_buildable_locations(self)
-
         available_actions = self.get_available_actions(buildable_road_locations, buildable_village_locations)
 
         action = r.choice(available_actions)

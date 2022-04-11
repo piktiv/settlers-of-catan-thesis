@@ -8,7 +8,7 @@ _CONFIG = dict(
     episodes=10,
     visualize=False,
     train=True,
-    agent=RandomAgent,
+    agent=DQNAgent,
     load_path='./pickles/'
 )
 

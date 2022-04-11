@@ -85,15 +85,17 @@ class Environment:
 
         # Villages 54, Cities 54, Roads 72, Trades 20
         buildable_locations = np.argwhere(self.board == 1)
-        village_locations = [x for x in buildable_locations if x[0] % 2 == 0]
-        road_locations = [x for x in buildable_locations if x[0] % 2 != 0]
+        village_locations = [("build_village", tuple(x)) for x in buildable_locations if x[0] % 2 == 0]
+        city_locations = [("build_city", tuple(x)) for x in buildable_locations if x[0] % 2 == 0]
+        road_locations = [("build_road", tuple(x)) for x in buildable_locations if x[0] % 2 != 0]
 
         self.action_space = []
         self.action_space.extend(village_locations)     # First 54 cities
-        self.action_space.extend(village_locations)     # Second 54 cities
+        self.action_space.extend(city_locations)        # Second 54 cities
         self.action_space.extend(road_locations)        # Road 20 locations
-        self.action_space.extend([x for x in permutations(self.players[0].resources, 2)])
-        self.action_space.append(("pass", 0))
+
+        self.action_space.extend([("trade", x) for x in permutations(self.players[0].resources, 2)])
+        self.action_space.append(("pass", (-1, -1)))
 
     def create_board(self):
         if self.shuffle:
@@ -248,6 +250,7 @@ class Environment:
 
     def step(self, action, location, player_id):
         row, col = location
+        # TODO change so that players gets updated here as well (not in Agent file)
         if action == "build_village" or action == "build_road" and self.board[row][col] == BUILDABLE:
             self.board[row][col] = player_id    # TODO add longest road check
         elif action == "build_city" and self.board[row][col] == player_id:
