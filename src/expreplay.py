@@ -20,7 +20,5 @@ class ExperienceReplay:
             self.buffer.pop(0)
 
     def sample(self, batch_size):
-        '''indices = np.random.choice(len(self.buffer), batch_size,
-                                   replace=False)
-        return [self.buffer[idx] for idx in indices]'''
-        return np.random.choice(self.buffer, batch_size, False)
+        indices = np.random.choice(len(self.buffer), batch_size, replace=False)
+        return [self.buffer[idx] for idx in indices]

@@ -18,7 +18,7 @@ class DQNAgent(AbstractAgent):
         self._EPSILON = 0.99
         self._EPSILON_DECAY = 0.0001
         self.experience_replay = ExperienceReplay()
-        self.min_exp_len = 6000
+        self.min_exp_len = 100
         self.batch_size = 32
         self.state = None
         self.last_action = None
@@ -33,16 +33,16 @@ class DQNAgent(AbstractAgent):
         k = list(self.resources.keys())
         return k[v.index(min(v))]
 
-    def action_masking(self, q_values, obs, buildable_village_locations, buildable_road_locations):
+    def action_masking(self, q_values, obs, buildable_village_locations, buildable_road_locations, available_actions):
         for i, (action, location) in enumerate(obs.action_space):
             if action == "build_village":
-                if location not in buildable_village_locations:
+                if action not in available_actions or location not in buildable_village_locations:
                     q_values[i] = -999
             if action == "build_city":
-                if location not in self.villages:
+                if action not in available_actions or location not in self.villages:
                     q_values[i] = -999
             if action == "build_road":
-                if location not in buildable_road_locations:
+                if action not in available_actions or location not in buildable_road_locations:
                     q_values[i] = -999
             if action == "trade":
                 trade_in, trade_out = location
@@ -57,19 +57,16 @@ class DQNAgent(AbstractAgent):
         available_actions = self.get_available_actions(buildable_road_locations, buildable_village_locations)
         print(available_actions)
 
-        # Exploration
-        num = r.random()
-
-
-        if num > self._EPSILON and self.train:  # Choose random direction
+        if r.random() > self._EPSILON and self.train:   # Exploration
             action = np.random.choice(available_actions)    # Action is chosen uniformly
             location = self.take_action(action, buildable_road_locations, buildable_village_locations)
             self._EPSILON *= 1 - self._EPSILON_DECAY
-        else:
+        else:   # Exploitation
             q_values = self.network.predict(np.array(obs.board.reshape([1, obs.board.shape[0], obs.board.shape[1], 1])))
             q_values = np.squeeze(q_values)
 
-            masked_q_values = self.action_masking(q_values, obs, buildable_village_locations, buildable_road_locations)
+            masked_q_values = self.action_masking(q_values, obs, buildable_village_locations, buildable_road_locations, available_actions)
+
             action, location = obs.action_space[np.argmax(masked_q_values)]
 
             if "build" in action:
@@ -78,16 +75,13 @@ class DQNAgent(AbstractAgent):
                 trade_in, trade_out = location
                 self.trade(trade_in, trade_out)
 
-            print(action, location)
-            print(f'villages {self.villages} cities {self.cities} roads {self.roads}')
-
+        print(self.experience_replay.__len__())
         if self.experience_replay.__len__() > self.min_exp_len and self.train:
             self.train_agent()
 
-        # Add experience and check if train
         self.state = obs.board
-        self.last_action = action
-        print("Epsilon", self._EPSILON)
+        self.last_action = (action, location)
+
         return action, location
 
     def train_agent(self):
@@ -128,14 +122,48 @@ class DQNAgent(AbstractAgent):
 
     def free_village_build(self, obs):  # Round 1
         buildable_locations = obs.free_build_village()
-        village_location = r.choice(buildable_locations)
+
+        if r.random() > self._EPSILON and self.train:   # Exploration
+            village_location = np.random.choice(buildable_locations)    # Action is chosen uniformly
+            self._EPSILON *= 1 - self._EPSILON_DECAY
+
+        else:   # Exploitation
+            q_values = self.network.predict(np.array(obs.board.reshape([1, obs.board.shape[0], obs.board.shape[1], 1])))
+            q_values = np.squeeze(q_values)
+
+            masked_q_values = self.action_masking(q_values, obs, buildable_locations, [], "build_village")
+            masked_q_values[-1] = -999  # Pass unavailable
+            for i, q in enumerate(masked_q_values):
+                print(i, q)
+
+            action, village_location = obs.action_space[np.argmax(masked_q_values)]
+
+        self.state = obs.board
+        self.last_action = ("build_village", village_location)
+
         self.villages.append(village_location)
         self.score += 1
         return "build_village", village_location
 
     def free_road_build(self, obs, village_location):
         buildable_locations = obs.get_adjacent_roads(village_location)
-        road_location = r.choice(buildable_locations)
+
+        if r.random() > self._EPSILON and self.train:   # Exploration
+            road_location = np.random.choice(buildable_locations)    # Action is chosen uniformly
+            self._EPSILON *= 1 - self._EPSILON_DECAY
+
+        else:   # Exploitation
+            q_values = self.network.predict(np.array(obs.board.reshape([1, obs.board.shape[0], obs.board.shape[1], 1])))
+            q_values = np.squeeze(q_values)
+
+            masked_q_values = self.action_masking(q_values, obs, [], buildable_locations, "build_road")
+            masked_q_values[-1] = -999  # Pass unavailable
+
+            action, road_location = obs.action_space[np.argmax(masked_q_values)]
+
+        self.state = obs.board
+        self.last_action = ("build_road", road_location)
+
         self.roads.append(road_location)
         return "build_road", road_location
 

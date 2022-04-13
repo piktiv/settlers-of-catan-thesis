@@ -50,8 +50,6 @@ class Runner:
             "SmartRandomAgent": 0
         }
 
-        steps_game = []
-        #obs = self.env
         while self.episode <= episodes:
             self.env.reset_env()     # Reset env
             self.env.print_board()
@@ -63,10 +61,20 @@ class Runner:
 
             start_order = chain(self.env.players, list(reversed(self.env.players)))
             for player in start_order:  # Game start
+                print(type(player).__name__)
                 action, location = player.free_village_build(obs)
                 obs = self.env.step(action, location, player.id)
+                if player == self.agent and type(self.agent).__name__ == type(player).__name__:
+                    self.agent.save_experience(
+                        player.state, (action, location), obs.reward, obs.last(), obs.board
+                    )
+
                 action, location = player.free_road_build(obs, location)
                 obs = self.env.step(action, location, player.id)
+                if player == self.agent and type(self.agent).__name__ == type(player).__name__:
+                    self.agent.save_experience(
+                        player.state, (action, location), obs.reward, obs.last(), obs.board
+                    )
 
             while True:
                 # For each player
@@ -79,7 +87,7 @@ class Runner:
                         print("taking", action, location)
                         obs = self.env.step(action, location, player.id)  # Take action on env
 
-                        if player == self.agent and type(self.agent).__name__ == 'DQNAgent':
+                        if player == self.agent and type(self.agent).__name__ == type(player).__name__:
                             self.agent.save_experience(
                                 player.state, (action, location), obs.reward, obs.last(), obs.board
                             )

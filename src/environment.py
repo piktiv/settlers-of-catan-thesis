@@ -76,7 +76,7 @@ class Environment:
     def __init__(self, players, visualize=False):
         self.visualize = False
         self.shuffle = True     # Shuffle tiles
-        r.shuffle(players)
+        #r.shuffle(players)
         self.players = players
 
         self.board = []
@@ -264,12 +264,8 @@ class Environment:
         return False
 
     def free_build_village(self):
-        buildable_locations = []
-        for n_row, row in enumerate(self.board):
-            if n_row % 2 == 0:
-                for n_col, col in enumerate(row):
-                    if self.check_village_buildable((n_row, n_col)):
-                        buildable_locations.append((n_row, n_col))
+        buildable_locations = [tuple(x) for x in np.argwhere(self.board == 1)
+                               if x[0] % 2 == 0 and self.check_village_buildable(x)]
 
         return buildable_locations
 
@@ -292,11 +288,14 @@ class Environment:
 
     def reset_env(self):
         self.create_board()
-        r.shuffle(self.players)
+        #r.shuffle(self.players)
 
     def reward(self, agent):
         result = sorted(self.players, key=lambda x: x.score, reverse=True)
         placement = result.index(agent)
+        if result[-1] == agent:
+            return -1
+
         if placement == 0:
             return 10
         elif placement == 1:
