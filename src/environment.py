@@ -76,7 +76,7 @@ class Environment:
     def __init__(self, players, visualize=False):
         self.visualize = False
         self.shuffle = True     # Shuffle tiles
-        #r.shuffle(players)
+        r.shuffle(players)
         self.players = players
 
         self.board = []
@@ -288,7 +288,7 @@ class Environment:
 
     def reset_env(self):
         self.create_board()
-        #r.shuffle(self.players)
+        r.shuffle(self.players)
 
     def reward(self, agent):
         result = sorted(self.players, key=lambda x: x.score, reverse=True)

@@ -3,9 +3,10 @@ import os
 import tensorflow as tf
 import numpy as np
 from itertools import chain
-from src.environment import Environment
-
 from itertools import permutations
+
+from src.environment import Environment
+from src.decorators import timer
 
 
 class Runner:
@@ -44,6 +45,7 @@ class Runner:
     def get_ranking(self):
         return sorted(self.env.players, key=lambda x: x.score, reverse=True)
 
+    @timer
     def run(self, episodes):
         results = {
             type(self.agent).__name__: 0,
@@ -51,7 +53,7 @@ class Runner:
         }
 
         while self.episode <= episodes:
-            self.env.reset_env()     # Reset env
+            self.env.reset_env()
             self.env.print_board()
 
             for player in self.env.players:
@@ -77,23 +79,20 @@ class Runner:
                     )
 
             while True:
-                # For each player
                 for player in self.env.players:
-                    # Throw dices, all gather resources
                     obs.environment_step()
-                    while action != "pass" or not obs.last():     # Player takes action until pass action is executed
-                        # Agent take action
+                    while action != "pass" or not obs.last():
                         action, location = player.step(obs)
-                        print("taking", action, location)
-                        obs = self.env.step(action, location, player.id)  # Take action on env
+                        print("taking", player.id, action, location)
+                        obs = self.env.step(action, location, player.id)
+
+                        if action == "pass" or obs.last():  # Experiment break if pass -> don't record exp
+                            break
 
                         if player == self.agent and type(self.agent).__name__ == type(player).__name__:
                             self.agent.save_experience(
                                 player.state, (action, location), obs.reward, obs.last(), obs.board
                             )
-
-                        if action == "pass" or obs.last():
-                            break
 
                     if obs.last():
                         break
@@ -107,7 +106,7 @@ class Runner:
             for i, player in enumerate(reversed(ranking)):
                 results[type(player).__name__] += i
             #self.summarize()
-            print('Average: ', self.current_average)
+
             self.episode += 1
 
             for player in self.env.players:

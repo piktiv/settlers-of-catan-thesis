@@ -103,7 +103,12 @@ class AbstractAgent:
         self.resources['ore'] -= 3
 
     def reset_agent(self):
-        pass
+        self.score = 0
+        for resource in self.resources.keys():
+            self.resources[resource] = 0
+        self.villages = []
+        self.cities = []
+        self.roads = []
 
     def save_model(self, path):
         pass

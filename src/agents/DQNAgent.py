@@ -16,22 +16,13 @@ class DQNAgent(AbstractAgent):
 
         self.network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
         self._EPSILON = 0.99
-        self._EPSILON_DECAY = 0.0001
+        self._EPSILON_DECAY = 0.000_001
+        self._MIN_EPSILON = 0.1
         self.experience_replay = ExperienceReplay()
         self.min_exp_len = 100
         self.batch_size = 32
         self.state = None
         self.last_action = None
-
-    def key_with_max_resource(self):
-        v = list(self.resources.values())
-        k = list(self.resources.keys())
-        return k[v.index(max(v))]
-
-    def key_with_min_resource(self):
-        v = list(self.resources.values())
-        k = list(self.resources.keys())
-        return k[v.index(min(v))]
 
     def action_masking(self, q_values, obs, buildable_village_locations, buildable_road_locations, available_actions):
         for i, (action, location) in enumerate(obs.action_space):
@@ -60,12 +51,14 @@ class DQNAgent(AbstractAgent):
         if r.random() > self._EPSILON and self.train:   # Exploration
             action = np.random.choice(available_actions)    # Action is chosen uniformly
             location = self.take_action(action, buildable_road_locations, buildable_village_locations)
-            self._EPSILON *= 1 - self._EPSILON_DECAY
+            if self._EPSILON > self._MIN_EPSILON:
+                self._EPSILON -= self._EPSILON_DECAY
         else:   # Exploitation
             q_values = self.network.predict(np.array(obs.board.reshape([1, obs.board.shape[0], obs.board.shape[1], 1])))
             q_values = np.squeeze(q_values)
 
-            masked_q_values = self.action_masking(q_values, obs, buildable_village_locations, buildable_road_locations, available_actions)
+            masked_q_values = self.action_masking(
+                q_values, obs, buildable_village_locations, buildable_road_locations, available_actions)
 
             action, location = obs.action_space[np.argmax(masked_q_values)]
 
@@ -75,7 +68,6 @@ class DQNAgent(AbstractAgent):
                 trade_in, trade_out = location
                 self.trade(trade_in, trade_out)
 
-        print(self.experience_replay.__len__())
         if self.experience_replay.__len__() > self.min_exp_len and self.train:
             self.train_agent()
 
@@ -133,8 +125,6 @@ class DQNAgent(AbstractAgent):
 
             masked_q_values = self.action_masking(q_values, obs, buildable_locations, [], "build_village")
             masked_q_values[-1] = -999  # Pass unavailable
-            for i, q in enumerate(masked_q_values):
-                print(i, q)
 
             action, village_location = obs.action_space[np.argmax(masked_q_values)]
 
@@ -166,34 +156,6 @@ class DQNAgent(AbstractAgent):
 
         self.roads.append(road_location)
         return "build_road", road_location
-
-    def build_village(self, location):
-        self.score += 1
-        self.villages.append(location)
-        self.resources['brick'] -= 1
-        self.resources['lumber'] -= 1
-        self.resources['wool'] -= 1
-        self.resources['grain'] -= 1
-
-    def build_road(self, location):
-        self.roads.append(location)
-        self.resources['brick'] -= 1
-        self.resources['lumber'] -= 1
-
-    def build_city(self, location):
-        self.score += 1
-        self.villages.remove(location)
-        self.cities.append(location)
-        self.resources['grain'] -= 2
-        self.resources['ore'] -= 3
-
-    def reset_agent(self):
-        self.score = 0
-        for resource in self.resources.keys():
-            self.resources[resource] = 0
-        self.villages = []
-        self.cities = []
-        self.roads = []
 
     def save_model(self, path):
         pass
