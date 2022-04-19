@@ -21,4 +21,7 @@ class ExperienceReplay:
 
     def sample(self, batch_size):
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
+
         return [self.buffer[idx] for idx in indices]
+
+# TODO Prioritized Experience Replay

@@ -37,13 +37,13 @@ class AbstractAgent:
             available_actions.append("build_city")
         for key, item in self.resources.items():
             if self.resources[key] >= 4:
-                available_actions.append("trade_" + key)
+                available_actions.append("trade")
         # Trade bank/player
         # Cards use/buy
 
         return available_actions
 
-    def step(self, obs):     # Obs -> observer
+    def step(self, obs):     # step is one action for a actor, Obs -> observer
         ...
 
     def take_action(self, action, buildable_road_locations, buildable_village_locations):
@@ -58,15 +58,18 @@ class AbstractAgent:
         elif action == "build_city":
             location = r.choice(self.villages)
             getattr(self, action)(location)
-        elif "trade_" in action:
-            getattr(self, action[:5])(action[6:])
+        elif "trade" in action:
+            tradeable_resources = [x for x, resource in self.resources.items() if resource >= 4]
+            trade_in = r.choice(tradeable_resources)
+            new_resources = list(self.resources.keys())
+            new_resources.remove(trade_in)
+            trade_out = r.choice(new_resources)
+            location = (trade_in, trade_out)
+            getattr(self, action)(trade_in, trade_out)
         return location
 
-    def trade(self, trade_in):  # Trade with bank
-        new_resources = list(self.resources.keys())
-        new_resources.remove(trade_in)
-        traded_out = r.choice(new_resources)
-        self.resources[traded_out] += 1
+    def trade(self, trade_in, trade_out):  # Trade with bank
+        self.resources[trade_out] += 1
         self.resources[trade_in] -= 4
 
     def free_village_build(self, obs):   # Round 1

@@ -54,7 +54,6 @@ class Runner:
 
         while self.episode <= episodes:
             self.env.reset_env()
-            self.env.print_board()
 
             for player in self.env.players:
                 player.reset_agent()
@@ -63,19 +62,18 @@ class Runner:
 
             start_order = chain(self.env.players, list(reversed(self.env.players)))
             for player in start_order:  # Game start
-                print(type(player).__name__)
                 action, location = player.free_village_build(obs)
                 obs = self.env.step(action, location, player.id)
                 if player == self.agent and type(self.agent).__name__ == type(player).__name__:
                     self.agent.save_experience(
-                        player.state, (action, location), obs.reward, obs.last(), obs.board
+                        player.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
                     )
 
                 action, location = player.free_road_build(obs, location)
                 obs = self.env.step(action, location, player.id)
                 if player == self.agent and type(self.agent).__name__ == type(player).__name__:
                     self.agent.save_experience(
-                        player.state, (action, location), obs.reward, obs.last(), obs.board
+                        player.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
                     )
 
             while True:
@@ -83,15 +81,15 @@ class Runner:
                     obs.environment_step()
                     while action != "pass" or not obs.last():
                         action, location = player.step(obs)
-                        print("taking", player.id, action, location)
+
                         obs = self.env.step(action, location, player.id)
 
                         if action == "pass" or obs.last():  # Experiment break if pass -> don't record exp
                             break
 
-                        if player == self.agent and type(self.agent).__name__ == type(player).__name__:
+                        if player == self.agent and type(self.agent).__name__ == type(player).__name__ and self.agent.train:
                             self.agent.save_experience(
-                                player.state, (action, location), obs.reward, obs.last(), obs.board
+                                player.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
                             )
 
                     if obs.last():
@@ -110,7 +108,10 @@ class Runner:
             self.episode += 1
 
             for player in self.env.players:
-                print(f'{player.id} {player.villages} {player.cities}')
+                print(f'{type(player).__name__} {player.villages} {player.cities}')
+            for key, item in results.items():
+                print(f'{key} wins {(item / self.episode) * 100}% won {item} times')
+            print(self.agent._EPSILON)
 
         for key, item in results.items():
             print(f'{key} wins {(item / episodes) * 100}%')
