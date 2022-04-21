@@ -97,7 +97,7 @@ class Runner:
                     break
 
             # Last step, catches if agent don't take action leading to terminal state aswell
-            if player == self.agent and self.train:
+            if self.train:
                 self.agent.save_experience(
                     player.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
                 )
