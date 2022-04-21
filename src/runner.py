@@ -68,7 +68,7 @@ class Runner:
                 obs = self.env.step(action, location, player.id)
                 if player == self.agent and self.train:
                     self.agent.save_experience(
-                        player.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
+                        self.agent.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
                     )
 
                 action, location = player.free_road_build(obs, location)
@@ -81,7 +81,7 @@ class Runner:
 
                         if player == self.agent and self.train:
                             self.agent.save_experience(
-                                player.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
+                                self.agent.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
                             )
 
                         action, location = player.step(obs)
@@ -99,7 +99,7 @@ class Runner:
             # Last step, catches if agent don't take action leading to terminal state aswell
             if self.train:
                 self.agent.save_experience(
-                    player.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
+                    self.agent.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
                 )
 
             self.summarize()

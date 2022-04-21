@@ -73,8 +73,8 @@ class Tile:
 
 
 class Environment:
-    def __init__(self, players, visualize=False, shuffle=True):
-        self.visualize = False
+    def __init__(self, players, visualize=False, shuffle=False):
+        self.visualize = visualize
         self.shuffle = shuffle     # Shuffle tiles
         r.shuffle(players)
         self.players = players
