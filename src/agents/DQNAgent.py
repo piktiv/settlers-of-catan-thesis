@@ -23,7 +23,7 @@ class DQNAgent(AbstractAgent):
         self.learning_rate = 0.95
         self.steps = 0
         self._EPSILON = 0.99
-        self._EPSILON_DECAY = 0.000_1
+        self._EPSILON_DECAY = 0.000_001
         self._MIN_EPSILON = 0.1
         self.experience_replay = ExperienceReplay()
         self.min_exp_len = 100
@@ -67,10 +67,10 @@ class DQNAgent(AbstractAgent):
 
             masked_q_values = self.action_masking(
                 q_values, obs, buildable_village_locations, buildable_road_locations, available_actions)
-            print(np.argmax(masked_q_values))
-            print(f'{obs.action_space[np.argmax(masked_q_values)]} value {np.max(masked_q_values)}')
+
+            #print(f'{obs.action_space[np.argmax(masked_q_values)]} value {np.max(masked_q_values)}')
             action, location = obs.action_space[np.argmax(masked_q_values)]
-            print(f'informed {action} here {location}')
+
             if "build" in action:
                 getattr(self, action)(location)
             elif "trade" in action:
@@ -84,7 +84,7 @@ class DQNAgent(AbstractAgent):
         self.last_action = (action, location)
         self.steps += 1
 
-        if self.steps % self.update_interval == 0 and self.steps > 0:
+        if self.steps % self.update_interval == 0 and self.steps > 0 and self.train:
             self.update_target()
         return action, location
 
@@ -103,7 +103,7 @@ class DQNAgent(AbstractAgent):
                         exp.reward + self.learning_rate * y_target[i][np.argmax(y_next[i])]
                 )
 
-        self.network.fit(states, y, batch_size=self.batch_size)
+        self.network.fit(states, y, batch_size=self.batch_size, verbose=1)
 
     def update_target(self):
         self.target_network.set_weights(self.network.get_weights())
@@ -170,7 +170,7 @@ class DQNAgent(AbstractAgent):
         return "build_road", road_location
 
     def save_model(self, filename='models'):
-        self.model.save_weights(self.save)
+        self.network.save_weights(self.save)
 
     def load_model(self, directory, filename='models'):
-        self.model.load_weights(self.save)
+        self.network.load_weights(self.save)

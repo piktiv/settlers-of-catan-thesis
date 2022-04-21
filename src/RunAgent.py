@@ -5,9 +5,9 @@ from src.agents import *
 
 
 _CONFIG = dict(
-    episodes=1000,
+    episodes=100,
     visualize=False,
-    train=True,
+    train=False,
     agent=DQNAgent,
     load_path='./pickles/',
     shuffle=False

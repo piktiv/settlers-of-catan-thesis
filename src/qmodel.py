@@ -7,9 +7,9 @@ from tensorflow.keras.optimizers import RMSprop
 
 def q_model(input_shape, action_space):
     input_layer = Input(input_shape)
-    x = input_layer     # TODO Try kernel size shape of tile (5, 7)
+    x = input_layer
     x = Conv2D(64, kernel_size=5, strides=3, activation='relu', input_shape=input_shape,
-               padding='same', kernel_initializer='he_normal')(x)
+               padding='same')(x)
     x = Conv2D(64, kernel_size=4, strides=2, activation='relu', padding='same')(x)
     x = Conv2D(64, kernel_size=3, strides=1, activation='relu', padding='same')(x)
     x = Flatten()(x)

@@ -73,9 +73,9 @@ class Tile:
 
 
 class Environment:
-    def __init__(self, players, visualize=False):
+    def __init__(self, players, visualize=False, shuffle=True):
         self.visualize = False
-        self.shuffle = True     # Shuffle tiles
+        self.shuffle = shuffle     # Shuffle tiles
         r.shuffle(players)
         self.players = players
 
@@ -291,21 +291,25 @@ class Environment:
         r.shuffle(self.players)
 
     def reward(self, agent):
-        result = sorted(self.players, key=lambda x: x.score, reverse=True)
-        placement = result.index(agent)
-        if result[-1] == agent:
-            return -1
+        if self.last():
+            result = sorted(self.players, key=lambda x: x.score, reverse=True)
+            placement = result.index(agent)
+            if result[-1] == agent:
+                return -1
 
-        if placement == 0:
-            return 10
-        elif placement == 1:
-            return 7
-        elif placement == 2:
-            return 3
-        elif placement == 3:
-            return -1
+            if placement == 0:
+                return 1
+            elif placement == 1:
+                return 0.7
+            elif placement == 2:
+                return 0.3
+            elif placement == 3:
+                return -1
+            else:
+                return 0
         else:
             return 0
+
 
 
 '''width, height = 200, 200

@@ -31,13 +31,15 @@ class Runner:
             self.agent.load_model(load_path)
 
     def summarize(self):
+        print(f'Episode {self.episode}')
         self.scores_batch.append(self.score)
-        if len(self.scores_batch) == 50:
+        '''if len(self.scores_batch) == 50:
             average = np.mean(self.scores_batch)
             self.writer.add_summary(tf.compat.v1.Summary(value=[tf.compat.v1.Summary.Value(tag='Moving Average Score (50) per Episode', simple_value=average)]), self.episode - 50)
             self.scores_batch.pop(0)
-            self.current_average = average
+            self.current_average = average'''
         if self.train and self.episode % 10 == 0:
+            print(f'saving weights')
             self.agent.save_model(self.path)
         self.episode += 1
         self.score = 0
@@ -64,33 +66,29 @@ class Runner:
             for player in start_order:  # Game start
                 action, location = player.free_village_build(obs)
                 obs = self.env.step(action, location, player.id)
-                if player == self.agent and type(self.agent).__name__ == type(player).__name__:
+                if player == self.agent and self.train:
                     self.agent.save_experience(
                         player.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
                     )
 
                 action, location = player.free_road_build(obs, location)
                 obs = self.env.step(action, location, player.id)
-                if player == self.agent and type(self.agent).__name__ == type(player).__name__:
-                    self.agent.save_experience(
-                        player.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
-                    )
 
             while True:
                 for player in self.env.players:
                     obs.environment_step()
                     while action != "pass" or not obs.last():
-                        action, location = player.step(obs)
 
-                        obs = self.env.step(action, location, player.id)
-
-                        if action == "pass" or obs.last():  # Experiment break if pass -> don't record exp
-                            break
-
-                        if player == self.agent and type(self.agent).__name__ == type(player).__name__ and self.agent.train:
+                        if player == self.agent and self.train:
                             self.agent.save_experience(
                                 player.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
                             )
+
+                        action, location = player.step(obs)
+                        obs = self.env.step(action, location, player.id)
+
+                        if action == "pass" or obs.last():
+                            break
 
                     if obs.last():
                         break
@@ -98,20 +96,25 @@ class Runner:
                 if obs.last():
                     break
 
+            # Last step, catches if agent don't take action leading to terminal state aswell
+            if player == self.agent and self.train:
+                self.agent.save_experience(
+                    player.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
+                )
+
+            self.summarize()
+
             self.env.print_board()
             ranking = self.get_ranking()
 
             for i, player in enumerate(reversed(ranking)):
                 results[type(player).__name__] += i
-            #self.summarize()
-
-            self.episode += 1
 
             for player in self.env.players:
                 print(f'{type(player).__name__} {player.villages} {player.cities}')
             for key, item in results.items():
                 print(f'{key} wins {(item / self.episode) * 100}% won {item} times')
-            print(self.agent._EPSILON)
+            print(f'Epsilon {self.agent._EPSILON}')
 
         for key, item in results.items():
             print(f'{key} wins {(item / episodes) * 100}%')
