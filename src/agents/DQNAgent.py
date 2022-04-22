@@ -20,7 +20,7 @@ class DQNAgent(AbstractAgent):
         self.save = './models/DQNAgent_weights_v2.h5'
         self.actions = ENV.action_space
         self.update_interval = 300
-        self.learning_rate = 0.95
+        self.learning_rate = 0.8
         self.steps = 0
         self._EPSILON = 0.99
         self._EPSILON_DECAY = 0.000_005
@@ -92,9 +92,11 @@ class DQNAgent(AbstractAgent):
         experiences = self.experience_replay.sample(self.batch_size)
         states = np.array([exp.state for exp in experiences], dtype=np.float64)
         new_states = np.array([exp.new_state for exp in experiences])
+
         y = self.network.predict(states)
         y_next = self.network.predict(new_states)
         y_target = self.target_network.predict(new_states)
+
         for i, exp in enumerate(experiences):
             if exp.done:
                 y[i][self.actions.index(exp.action)] = exp.reward
@@ -106,6 +108,8 @@ class DQNAgent(AbstractAgent):
         self.network.fit(states, y, batch_size=self.batch_size, verbose=1)
 
     def update_target(self):
+        print(self.network.get_weights())
+        print(type(self.network.get_weights()))
         self.target_network.set_weights(self.network.get_weights())
 
     def save_experience(self, state, action, reward, done, next_state):
