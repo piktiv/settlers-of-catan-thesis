@@ -4,6 +4,7 @@ from src.agents import AbstractAgent
 from src.expreplay import ExperienceReplay, Experience
 from src.qmodel import q_model
 from src.environment import Environment
+from src.decorators import timer
 
 ENV = Environment([AbstractAgent(0)])
 
@@ -20,7 +21,7 @@ class DQNAgent(AbstractAgent):
         self.save = './models/DQNAgent_weights_v2.h5'
         self.actions = ENV.action_space
         self.update_interval = 300
-        self.learning_rate = 0.8
+        self.learning_rate = 0.9
         self.steps = 0
         self._EPSILON = 0.99
         self._EPSILON_DECAY = 0.000_005
@@ -33,6 +34,7 @@ class DQNAgent(AbstractAgent):
 
     # TODO Agent takes illegal actions think its because output exceeds -999 (-inf)
     # TODO Create test set illegal action to None see if np.argmax still works
+
     def action_masking(self, q_values, obs, buildable_village_locations, buildable_road_locations, available_actions):
         for i, (action, location) in enumerate(obs.action_space):
             if action == "build_village":
@@ -108,8 +110,6 @@ class DQNAgent(AbstractAgent):
         self.network.fit(states, y, batch_size=self.batch_size, verbose=1)
 
     def update_target(self):
-        print(self.network.get_weights())
-        print(type(self.network.get_weights()))
         self.target_network.set_weights(self.network.get_weights())
 
     def save_experience(self, state, action, reward, done, next_state):
@@ -140,7 +140,7 @@ class DQNAgent(AbstractAgent):
             q_values = np.squeeze(q_values)
 
             masked_q_values = self.action_masking(q_values, obs, buildable_locations, [], "build_village")
-            masked_q_values[-1] = -999  # Pass unavailable
+            masked_q_values[-1] = -np.Inf  # Pass unavailable
 
             action, village_location = obs.action_space[np.argmax(masked_q_values)]
 
