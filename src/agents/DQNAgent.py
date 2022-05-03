@@ -19,7 +19,7 @@ class DQNAgent(AbstractAgent):
         self.network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
         self.target_network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
 
-        self.save = 'DQNAgent_weights_220502_1650'
+        self.save = 'models/DQNAgent_weights_03.h5'
         self.actions = ENV.action_space
         self.update_interval = 300
         self.learning_rate = 0.9
@@ -28,8 +28,8 @@ class DQNAgent(AbstractAgent):
         self._EPSILON_DECAY = 0.000_005
         self._MIN_EPSILON = 0.1
         self.experience_replay = ExperienceReplay()
-        self.min_exp_len = 100
-        self.batch_size = 32
+        self.min_exp_len = 300
+        self.batch_size = 256
         self.state = None
         self.last_action = None
 

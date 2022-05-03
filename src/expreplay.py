@@ -1,7 +1,7 @@
 import numpy as np
 from collections import namedtuple
 import sys
-import random
+import random as r
 from src.segment_tree import SumSegmentTree, MinSegmentTree
 
 # Data class
@@ -84,7 +84,7 @@ class ReplayBuffer(object):
             done_mask[i] = 1 if executing act_batch[i] resulted in
             the end of an episode and 0 otherwise.
         """
-        idxes = [random.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
+        idxes = [r.randint(0, len(self._storage) - 1) for _ in range(batch_size)]
         return self._encode_sample(idxes)
 
 
@@ -127,7 +127,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         p_total = self._it_sum.sum(0, len(self._storage) - 1)
         every_range_len = p_total / batch_size
         for i in range(batch_size):
-            mass = random.random() * every_range_len + i * every_range_len
+            mass = r.random() * every_range_len + i * every_range_len
             idx = self._it_sum.find_prefixsum_idx(mass)
             res.append(idx)
         return res
