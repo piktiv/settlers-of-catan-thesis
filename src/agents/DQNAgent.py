@@ -1,3 +1,4 @@
+import datetime
 import numpy as np
 import random as r
 from src.agents import AbstractAgent
@@ -18,7 +19,7 @@ class DQNAgent(AbstractAgent):
         self.network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
         self.target_network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
 
-        self.save = './models/DQNAgent_weights_v2.h5'
+        self.save = 'DQNAgent_weights_220502_1650'
         self.actions = ENV.action_space
         self.update_interval = 300
         self.learning_rate = 0.9
@@ -31,9 +32,6 @@ class DQNAgent(AbstractAgent):
         self.batch_size = 32
         self.state = None
         self.last_action = None
-
-    # TODO Agent takes illegal actions think its because output exceeds -999 (-inf)
-    # TODO Create test set illegal action to None see if np.argmax still works
 
     def action_masking(self, q_values, obs, buildable_village_locations, buildable_road_locations, available_actions):
         for i, (action, location) in enumerate(obs.action_space):
@@ -70,7 +68,6 @@ class DQNAgent(AbstractAgent):
             masked_q_values = self.action_masking(
                 q_values, obs, buildable_village_locations, buildable_road_locations, available_actions)
 
-            #print(f'{obs.action_space[np.argmax(masked_q_values)]} value {np.max(masked_q_values)}')
             action, location = obs.action_space[np.argmax(masked_q_values)]
 
             if "build" in action:

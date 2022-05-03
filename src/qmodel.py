@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Input, Flatten, Dense, InputLayer, Lambda, Conv2D
+from tensorflow.keras.layers import Input, Flatten, Dense, InputLayer, Lambda, Conv2D, BatchNormalization
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import RMSprop
 
@@ -15,12 +15,13 @@ def q_model(input_shape, action_space):
     x = Flatten()(x)
 
     # Hidden Layer he_uniform/he_normal
-    x = Dense(512, activation="relu", kernel_initializer='he_uniform')(x)
-    x = Dense(256, activation="relu", kernel_initializer='he_uniform')(x)
+    x = Dense(512, activation="relu", kernel_initializer='he_normal')(x)
+    x = Dense(256, activation="relu", kernel_initializer='he_normal')(x)
+    x = BatchNormalization()(x)
     #x = Dense(64, activation="relu", kernel_initializer='he_uniform')(x)
 
     # Output Layer
-    output = Dense(len(action_space), activation="linear", kernel_initializer='he_uniform')(x)
+    output = Dense(len(action_space), activation="linear", kernel_initializer='he_normal')(x)
 
     model = Model(inputs=input_layer, outputs=output, name='DQN_CNN')
     model.compile(loss="mean_squared_error", optimizer=RMSprop(learning_rate=0.00025, rho=0.95, epsilon=0.01),

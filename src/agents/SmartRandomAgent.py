@@ -46,11 +46,12 @@ class SmartRandomAgent(AbstractAgent):
         return available_actions
 
     def step(self, obs):  # Obs -> observer
+
         buildable_road_locations, buildable_village_locations = obs.get_buildable_locations(self)
 
         if buildable_village_locations or len(self.villages) > 2:  # Prioritize building villages
             buildable_road_locations.clear()
-
+        # TODO For smarter agent only villages and roads that are not on the outskirts of map
         available_actions = self.get_available_actions(buildable_road_locations, buildable_village_locations)
 
         action = r.choice(available_actions)

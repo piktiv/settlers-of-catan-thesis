@@ -102,9 +102,6 @@ class Runner:
                     self.agent.state, (action, location), obs.reward(self.agent), obs.last(), obs.board
                 )
 
-            self.summarize()
-
-            self.env.print_board()
             ranking = self.get_ranking()
 
             for i, player in enumerate(reversed(ranking)):
@@ -115,6 +112,12 @@ class Runner:
             for key, item in results.items():
                 print(f'{key} wins {(item / self.episode) * 100}% won {item} times')
             print(f'Epsilon {self.agent._EPSILON}')
+
+            self.summarize()
+
+            self.env.print_board()
+            for player in self.env.players:
+                print(player.id, len(player.roads))
 
         for key, item in results.items():
             print(f'{key} wins {(item / episodes) * 100}%')
