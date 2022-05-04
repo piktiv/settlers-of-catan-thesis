@@ -15,9 +15,9 @@ def q_model(input_shape, action_space):
     x = Flatten()(x)
 
     # Hidden Layer he_uniform/he_normal
-    x = Dense(512, activation="relu", kernel_initializer='he_normal')(x)
-    x = Dense(256, activation="relu", kernel_initializer='he_normal')(x)
-    x = BatchNormalization()(x)
+    x = Dense(512, activation="relu", kernel_initializer='he_uniform')(x)
+    x = Dense(256, activation="relu", kernel_initializer='he_uniform')(x)
+    x = BatchNormalization()(x)  # Before linear expression
     #x = Dense(64, activation="relu", kernel_initializer='he_uniform')(x)
 
     # Output Layer

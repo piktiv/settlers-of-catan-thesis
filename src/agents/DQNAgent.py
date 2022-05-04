@@ -18,18 +18,21 @@ class DQNAgent(AbstractAgent):
 
         self.network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
         self.target_network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
+        self.batch_size = 256
+        self.history = None
+        self.save = 'models/DQNAgent_weights_new.h5'
 
-        self.save = 'models/DQNAgent_weights_03.h5'
         self.actions = ENV.action_space
         self.update_interval = 300
-        self.learning_rate = 0.9
+        self.train_interval = 4
+        self.gamma = 0.85
         self.steps = 0
         self._EPSILON = 0.99
         self._EPSILON_DECAY = 0.000_005
         self._MIN_EPSILON = 0.1
         self.experience_replay = ExperienceReplay()
         self.min_exp_len = 300
-        self.batch_size = 256
+
         self.state = None
         self.last_action = None
 
@@ -76,7 +79,7 @@ class DQNAgent(AbstractAgent):
                 trade_in, trade_out = location
                 self.trade(trade_in, trade_out)
 
-        if self.experience_replay.__len__() > self.min_exp_len and self.train:
+        if self.experience_replay.__len__() > self.min_exp_len and self.train and self.steps % self.train_interval:
             self.train_agent()
 
         self.state = obs.board
@@ -85,6 +88,7 @@ class DQNAgent(AbstractAgent):
 
         if self.steps % self.update_interval == 0 and self.steps > 0 and self.train:
             self.update_target()
+
         return action, location
 
     def train_agent(self):
@@ -101,10 +105,10 @@ class DQNAgent(AbstractAgent):
                 y[i][self.actions.index(exp.action)] = exp.reward
             else:
                 y[i][self.actions.index(exp.action)] = (
-                        exp.reward + self.learning_rate * y_target[i][np.argmax(y_next[i])]
+                        exp.reward + self.gamma * y_target[i][np.argmax(y_next[i])]
                 )
 
-        self.network.fit(states, y, batch_size=self.batch_size, verbose=1)
+        self.history = self.network.fit(states, y, batch_size=self.batch_size, verbose=1)
 
     def update_target(self):
         self.target_network.set_weights(self.network.get_weights())
@@ -175,3 +179,6 @@ class DQNAgent(AbstractAgent):
 
     def load_model(self, directory, filename='models'):
         self.network.load_weights(self.save)
+
+    def get_epsilon(self):
+        return self._EPSILON

@@ -18,26 +18,33 @@ class Runner:
         self.scores_batch = []
         self.score = 0  # store for the scores of an episode
         self.episode = 1  # episode counter
-        self.current_average = 0
+
         self.path = './graphs/' + datetime.datetime.now().strftime("%y%m%d_%H%M") \
-                    + ('_train_' if self.train else 'run_') \
+                    + ('_train_' if self.train else '_run_') \
                     + type(agent).__name__
 
         # self.writer = tf.summary.FileWriter(self.path, tf.get_default_graph())
         #self.writer = tf.compat.v1.summary.FileWriter(self.path)
-        #self.writer = tf.summary.create_file_writer(self.path)
+        self.writer = tf.summary.create_file_writer(logdir=self.path)
 
         if not self.train and load_path is not None and os.path.isdir(load_path):
             self.agent.load_model(load_path)
 
     def summarize(self):
         print(f'Episode {self.episode}')
+        tf.summary.scalar('Epsilon per Episode', self.agent.get_epsilon(), self.episode)
+
+
         self.scores_batch.append(self.score)
-        '''if len(self.scores_batch) == 50:
-            average = np.mean(self.scores_batch)
-            self.writer.add_summary(tf.compat.v1.Summary(value=[tf.compat.v1.Summary.Value(tag='Moving Average Score (50) per Episode', simple_value=average)]), self.episode - 50)
+        if len(self.scores_batch) == 50:
+            with self.writer.as_default():
+                tf.summary.scalar('Epsilon per Episode', self.agent.get_epsilon(), self.episode)
+                tf.summary.scalar('Win rate average (50) per Episode', np.mean(self.scores_batch), self.episode - 50)
+                # Loss
+                # Victory points
+                #self.writer.flush()
+
             self.scores_batch.pop(0)
-            self.current_average = average'''
         if self.train and self.episode % 10 == 0:
             print(f'saving weights')
             self.agent.save_model(self.path)
@@ -103,12 +110,16 @@ class Runner:
                 )
 
             ranking = self.get_ranking()
+            if ranking[0] == self.agent:
+                self.score = 1
 
             for i, player in enumerate(reversed(ranking)):
                 results[type(player).__name__] += i
 
             for player in self.env.players:
                 print(f'{type(player).__name__} {player.villages} {player.cities}')
+                print(len(player.roads))
+
             for key, item in results.items():
                 print(f'{key} wins {(item / self.episode) * 100}% won {item} times')
             print(f'Epsilon {self.agent._EPSILON}')
@@ -116,8 +127,6 @@ class Runner:
             self.summarize()
 
             self.env.print_board()
-            for player in self.env.players:
-                print(player.id, len(player.roads))
 
         for key, item in results.items():
             print(f'{key} wins {(item / episodes) * 100}%')
