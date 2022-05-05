@@ -20,7 +20,7 @@ class DQNAgent(AbstractAgent):
         self.target_network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
         self.batch_size = 256
         self.history = None
-        self.save = 'models/DQNAgent_weights_new.h5'
+        self.save = 'models/DQNAgent_weights_test.h5'
 
         self.actions = ENV.action_space
         self.update_interval = 300
@@ -109,6 +109,12 @@ class DQNAgent(AbstractAgent):
                 )
 
         self.history = self.network.fit(states, y, batch_size=self.batch_size, verbose=1)
+        
+        '''priorities = []
+        Q = self.network.predict(states)
+
+        for state, action in enumerate(exp.actions):
+            error = np.abs(Q[state][self.actions.index(action)] - y[state][self.actions.index(action)])'''
 
     def update_target(self):
         self.target_network.set_weights(self.network.get_weights())
@@ -164,7 +170,7 @@ class DQNAgent(AbstractAgent):
             q_values = np.squeeze(q_values)
 
             masked_q_values = self.action_masking(q_values, obs, [], buildable_locations, "build_road")
-            masked_q_values[-1] = -999  # Pass unavailable
+            masked_q_values[-1] = -np.Inf  # Pass unavailable
 
             action, road_location = obs.action_space[np.argmax(masked_q_values)]
 
