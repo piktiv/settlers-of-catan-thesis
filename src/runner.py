@@ -32,15 +32,14 @@ class Runner:
 
     def summarize(self):
         print(f'Episode {self.episode}')
-        tf.summary.scalar('Epsilon per Episode', self.agent.get_epsilon(), self.episode)
-
+        #tf.summary.scalar('Epsilon per Episode', self.agent.get_epsilon(), self.episode)
 
         self.scores_batch.append(self.score)
         if len(self.scores_batch) == 50:
             with self.writer.as_default():
                 tf.summary.scalar('Epsilon per Episode', self.agent.get_epsilon(), self.episode)
                 tf.summary.scalar('Win rate average (50) per Episode', np.mean(self.scores_batch), self.episode - 50)
-                # Loss
+                tf.summary.scalar('Loss', np.squeeze(self.agent.history.history['loss']), self.episode)
                 # Victory points
                 #self.writer.flush()
 

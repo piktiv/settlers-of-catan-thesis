@@ -5,7 +5,7 @@ from src.agents import *
 
 
 _CONFIG = dict(
-    episodes=1000,
+    episodes=10000,
     visualize=False,
     train=True,
     agent=DQNAgent,

@@ -2,7 +2,7 @@ import datetime
 import numpy as np
 import random as r
 from src.agents import AbstractAgent
-from src.expreplay import ExperienceReplay, Experience
+from src.expreplay import ExperienceReplay, Experience, PrioritizedReplayBuffer
 from src.qmodel import q_model
 from src.environment import Environment
 from src.decorators import timer
@@ -20,7 +20,7 @@ class DQNAgent(AbstractAgent):
         self.target_network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
         self.batch_size = 256
         self.history = None
-        self.save = 'models/DQNAgent_weights_test.h5'
+        self.save = 'models/DQNAgent_weights_fix.h5'
 
         self.actions = ENV.action_space
         self.update_interval = 300
@@ -30,7 +30,13 @@ class DQNAgent(AbstractAgent):
         self._EPSILON = 0.99
         self._EPSILON_DECAY = 0.000_005
         self._MIN_EPSILON = 0.1
-        self.experience_replay = ExperienceReplay()
+
+        self.alpha = 0.4
+        self.beta = 0.6
+        self.beta_inc = 0.000_005
+        self.epsilon_replay = 0.000_001
+        self.experience_replay = PrioritizedReplayBuffer(100_000, self.beta)
+        #self.experience_replay = ExperienceReplay()
         self.min_exp_len = 300
 
         self.state = None
@@ -82,6 +88,11 @@ class DQNAgent(AbstractAgent):
         if self.experience_replay.__len__() > self.min_exp_len and self.train and self.steps % self.train_interval:
             self.train_agent()
 
+        if self.beta < 1:
+            self.beta += self.beta_inc
+        else:
+            self.beta = 1
+
         self.state = obs.board
         self.last_action = (action, location)
         self.steps += 1
@@ -92,37 +103,37 @@ class DQNAgent(AbstractAgent):
         return action, location
 
     def train_agent(self):
-        experiences = self.experience_replay.sample(self.batch_size)
-        states = np.array([exp.state for exp in experiences], dtype=np.float64)
-        new_states = np.array([exp.new_state for exp in experiences])
+        experiences = self.experience_replay.sample(self.batch_size, self.beta)
+        states, actions, rewards, new_states, dones, weights, batch_idxes = experiences
 
         y = self.network.predict(states)
+        old_y = y
         y_next = self.network.predict(new_states)
         y_target = self.target_network.predict(new_states)
+        actions = [tuple(action) for action in actions]
 
-        for i, exp in enumerate(experiences):
-            if exp.done:
-                y[i][self.actions.index(exp.action)] = exp.reward
-            else:
-                y[i][self.actions.index(exp.action)] = (
-                        exp.reward + self.gamma * y_target[i][np.argmax(y_next[i])]
+        for state in range(self.batch_size):
+            if dones[state]:
+                y[state][self.actions.index(actions[state])] = rewards[state]
+            else:   # Bellman equation to update rewards
+                y[state][self.actions.index(actions[state])] = (
+                        rewards[state] + self.gamma * y_target[state][np.argmax(y_next[state])]
                 )
 
-        self.history = self.network.fit(states, y, batch_size=self.batch_size, verbose=1)
-        
-        '''priorities = []
-        Q = self.network.predict(states)
+        self.history = self.network.fit(states, y, batch_size=self.batch_size, verbose=1, sample_weight=weights)
 
-        for state, action in enumerate(exp.actions):
-            error = np.abs(Q[state][self.actions.index(action)] - y[state][self.actions.index(action)])'''
+        priorities = []
+        for state, action in enumerate(actions):
+            error = self.epsilon_replay + np.abs(old_y[state][self.actions.index(action)] - y[state][self.actions.index(action)])
+            priorities.append(error)
+
+        self.experience_replay.update_priorities(batch_idxes, priorities)
 
     def update_target(self):
         self.target_network.set_weights(self.network.get_weights())
 
     def save_experience(self, state, action, reward, done, next_state):
-        self.experience_replay.append(
-            Experience(state, action, reward, done, next_state)
-            )
+        self.experience_replay.add(state, action, reward, next_state, done)
 
     def random_trade(self, trade_in):  # Trade with bank
         new_resources = list(self.resources.keys())

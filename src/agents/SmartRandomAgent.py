@@ -60,19 +60,19 @@ class SmartRandomAgent(AbstractAgent):
         return action, location
 
     def take_action(self, action, buildable_road_locations, buildable_village_locations):
-        location = (-1, -1)  # Undefined
-
+        location = (-1, -1)
         if action == "build_village":
             location = r.choice(buildable_village_locations)
-            getattr(self, action)(location)
+            self.build_village(location)
         elif action == "build_road":
             location = r.choice(buildable_road_locations)
-            getattr(self, action)(location)
+            self.build_road(location)
         elif action == "build_city":
             location = r.choice(self.villages)
-            getattr(self, action)(location)
+            self.build_city(location)
         elif "trade_" in action:
             getattr(self, action[:5])(action[6:])
+
         return location
 
     # TODO add ports and in env

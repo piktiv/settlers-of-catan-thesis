@@ -66,10 +66,7 @@ class AbstractAgent:
             trade_out = r.choice(new_resources)
             location = (trade_in, trade_out)
             getattr(self, action)(trade_in, trade_out)
-        if action == "build_road":
-            print(f'building road at {location}')
-        if (-1, -1) in buildable_road_locations:
-            raise ValueError("invalid location for road")
+
         return location
 
     def trade(self, trade_in, trade_out):  # Trade with bank
