@@ -16,6 +16,7 @@ class Runner:
         self.env = env
         self.train = train  # run only or train_model model?
         self.scores_batch = []
+        self.victory_points_batch = []
         self.score = 0  # store for the scores of an episode
         self.episode = 1  # episode counter
 
@@ -23,8 +24,6 @@ class Runner:
                     + ('_train_' if self.train else '_run_') \
                     + type(agent).__name__
 
-        # self.writer = tf.summary.FileWriter(self.path, tf.get_default_graph())
-        #self.writer = tf.compat.v1.summary.FileWriter(self.path)
         self.writer = tf.summary.create_file_writer(logdir=self.path)
 
         if not self.train and load_path is not None and os.path.isdir(load_path):
@@ -32,18 +31,24 @@ class Runner:
 
     def summarize(self):
         print(f'Episode {self.episode}')
-        #tf.summary.scalar('Epsilon per Episode', self.agent.get_epsilon(), self.episode)
 
+        self.victory_points_batch.append(self.agent.score)
         self.scores_batch.append(self.score)
+
+        if self.agent.history:
+            tf.summary.scalar('Loss', np.squeeze(self.agent.history.history['loss']), self.episode)
+
         if len(self.scores_batch) == 50:
             with self.writer.as_default():
-                tf.summary.scalar('Epsilon per Episode', self.agent.get_epsilon(), self.episode)
                 tf.summary.scalar('Win rate average (50) per Episode', np.mean(self.scores_batch), self.episode - 50)
-                tf.summary.scalar('Loss', np.squeeze(self.agent.history.history['loss']), self.episode)
+                tf.summary.scalar('Average VP (50) per Episode', np.mean(self.victory_points_batch), self.episode - 50)
+                tf.summary.scalar('Epsilon per Episode', self.agent.get_epsilon(), self.episode)
+
                 # Victory points
                 #self.writer.flush()
-
+                # save new model if moving win rate is best
             self.scores_batch.pop(0)
+            self.victory_points_batch.pop(0)
         if self.train and self.episode % 10 == 0:
             print(f'saving weights')
             self.agent.save_model(self.path)
@@ -55,6 +60,8 @@ class Runner:
 
     @timer
     def run(self, episodes):
+        print("GPU: ")
+        print(tf.config.list_physical_devices('GPU'))
         results = {
             type(self.agent).__name__: 0,
             "SmartRandomAgent": 0
@@ -74,7 +81,8 @@ class Runner:
                 obs = self.env.step(action, location, player.id)
                 if player == self.agent and self.train:
                     self.agent.save_experience(
-                        self.agent.state, self.agent.last_action, obs.reward(self.agent), obs.last(), obs.board
+                        self.agent.state, self.agent.last_action, obs.reward(self.agent),
+                        obs.last(), self.agent.encode_resources(obs.board)
                     )
 
                 action, location = player.free_road_build(obs, location)
@@ -87,7 +95,8 @@ class Runner:
 
                         if player == self.agent and self.train:
                             self.agent.save_experience(
-                                self.agent.state, self.agent.last_action, obs.reward(self.agent), obs.last(), obs.board
+                                self.agent.state, self.agent.last_action, obs.reward(self.agent),
+                                obs.last(), self.agent.encode_resources(obs.board)
                             )
 
                         action, location = player.step(obs)
@@ -102,11 +111,13 @@ class Runner:
                 if obs.last():
                     break
 
-            # Last step, catches if agent don't take action leading to terminal state aswell
+            # Last step, catches if agent don't take action leading to terminal state
             if self.train:
-                self.agent.save_experience(
-                    self.agent.state, self.agent.last_action, obs.reward(self.agent), obs.last(), obs.board
-                )
+                if player == self.agent and self.train:
+                    self.agent.save_experience(
+                        self.agent.state, self.agent.last_action, obs.reward(self.agent),
+                        obs.last(), self.agent.encode_resources(obs.board)
+                    )
 
             ranking = self.get_ranking()
             if ranking[0] == self.agent:

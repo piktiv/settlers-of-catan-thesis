@@ -18,21 +18,22 @@ class DQNAgent(AbstractAgent):
 
         self.network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
         self.target_network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
-        self.batch_size = 256
+        self.batch_size = 64
         self.history = None
-        self.save = 'models/DQNAgent_weights_fix.h5'
+        self.save = 'models/DQNAgent_weights_reduced.h5'
+        self.verbose = 0
 
         self.actions = ENV.action_space
         self.update_interval = 300
-        self.train_interval = 4
+        self.train_interval = 1
         self.gamma = 0.85
         self.steps = 0
         self._EPSILON = 0.99
         self._EPSILON_DECAY = 0.000_005
         self._MIN_EPSILON = 0.1
 
-        self.alpha = 0.4
-        self.beta = 0.6
+        self.alpha = 0.7
+        self.beta = 0.5
         self.beta_inc = 0.000_005
         self.epsilon_replay = 0.000_001
         self.experience_replay = PrioritizedReplayBuffer(100_000, self.beta)
@@ -85,7 +86,7 @@ class DQNAgent(AbstractAgent):
                 trade_in, trade_out = location
                 self.trade(trade_in, trade_out)
 
-        if self.experience_replay.__len__() > self.min_exp_len and self.train and self.steps % self.train_interval:
+        if self.experience_replay.__len__() > self.min_exp_len and self.train:
             self.train_agent()
 
         if self.beta < 1:
@@ -120,7 +121,8 @@ class DQNAgent(AbstractAgent):
                         rewards[state] + self.gamma * y_target[state][np.argmax(y_next[state])]
                 )
 
-        self.history = self.network.fit(states, y, batch_size=self.batch_size, verbose=1, sample_weight=weights)
+        self.history = self.network.fit(states, y, batch_size=self.batch_size, verbose=self.verbose, sample_weight=weights)
+        self.verbose = 0
 
         priorities = []
         for state, action in enumerate(actions):
@@ -131,6 +133,8 @@ class DQNAgent(AbstractAgent):
 
     def update_target(self):
         self.target_network.set_weights(self.network.get_weights())
+        self.verbose = 1
+        print("BETA", self.beta)
 
     def save_experience(self, state, action, reward, done, next_state):
         self.experience_replay.add(state, action, reward, next_state, done)
@@ -185,11 +189,17 @@ class DQNAgent(AbstractAgent):
 
             action, road_location = obs.action_space[np.argmax(masked_q_values)]
 
-        self.state = obs.board
+        self.state = self.encode_resources(obs.board)
         self.last_action = ("build_road", road_location)
 
         self.roads.append(road_location)
         return "build_road", road_location
+
+    def encode_resources(self, board):
+        agent_board = np.copy(board)
+        for row, value in enumerate(self.resources.values()):
+            agent_board[row][1] = value
+        return agent_board
 
     def save_model(self, filename='models'):
         self.network.save_weights(self.save)

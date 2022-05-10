@@ -84,7 +84,7 @@ class Environment:
         self.create_board()
 
         # Villages 54, Cities 54, Roads 72, Trades 20
-        buildable_locations = np.argwhere(self.board == 1)
+        buildable_locations = np.argwhere(self.board == BUILDABLE)
         village_locations = [("build_village", tuple(x)) for x in buildable_locations if x[0] % 2 == 0]
         city_locations = [("build_city", tuple(x)) for x in buildable_locations if x[0] % 2 == 0]
         road_locations = [("build_road", tuple(x)) for x in buildable_locations if x[0] % 2 != 0]
