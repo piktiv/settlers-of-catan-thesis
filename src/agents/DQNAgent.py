@@ -65,6 +65,7 @@ class DQNAgent(AbstractAgent):
         buildable_road_locations, buildable_village_locations = obs.get_buildable_locations(self)
 
         available_actions = self.get_available_actions(buildable_road_locations, buildable_village_locations)
+        print(available_actions)
 
         if r.random() < self._EPSILON and self.train:   # Exploration
             action = np.random.choice(available_actions)    # Action is chosen uniformly
@@ -100,7 +101,7 @@ class DQNAgent(AbstractAgent):
 
         if self.steps % self.update_interval == 0 and self.steps > 0 and self.train:
             self.update_target()
-
+        print(action, location)
         return action, location
 
     def train_agent(self):

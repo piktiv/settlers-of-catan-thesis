@@ -16,10 +16,11 @@ class RandomAgent(AbstractAgent):
 
         action = r.choice(available_actions)
         location = self.take_action(action, buildable_road_locations, buildable_village_locations)
+        print("RA", action, location)
 
         return action, location
 
-    def take_action(self, action, buildable_road_locations, buildable_village_locations):
+    '''def take_action(self, action, buildable_road_locations, buildable_village_locations):
         location = (-1, -1)  # Undefined
 
         if action == "build_village":
@@ -31,17 +32,17 @@ class RandomAgent(AbstractAgent):
         elif action == "build_city":
             location = r.choice(self.villages)
             getattr(self, action)(location)
-        elif "trade_" in action:
+        elif "trade" in action:
             getattr(self, action[:5])(action[6:])
-        return location
+        return location'''
 
     # TODO add ports and in env
-    def trade(self, trade_in):  # Trade with bank
+    '''def trade(self, trade_in):  # Trade with bank
         new_resources = list(self.resources.keys())
         new_resources.remove(trade_in)
         traded_out = r.choice(new_resources)
         self.resources[traded_out] += 1
-        self.resources[trade_in] -= 4
+        self.resources[trade_in] -= 4'''
 
     def free_village_build(self, obs):   # Round 1
         buildable_locations = obs.free_build_village()

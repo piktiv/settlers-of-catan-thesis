@@ -45,7 +45,7 @@ class Runner:
 
                 if self.best_win_rate < np.mean(self.scores_batch):
                     self.best_win_rate = np.mean(self.scores_batch)
-                    self.network.save_weights('models/DQNAgent_best_weights.h5')
+                    self.agent.network.save_weights('models/DQNAgent_best_weights.h5')
                 # self.writer.flush()
             self.scores_batch.pop(0)
             self.victory_points_batch.pop(0)
@@ -121,7 +121,7 @@ class Runner:
                 print(f'{type(player).__name__} {player.villages} {player.cities}')
                 print(len(player.roads))
 
-            print(f'Epsilon {self.agent.get_epsilon}')
+            print(f'Epsilon {self.agent.get_epsilon()}')
             self.summarize()
 
             self.env.print_board()
