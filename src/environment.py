@@ -154,6 +154,8 @@ class Environment:
                 else:
                     if len(str(value)) == 2:
                         print(value, end=' ' * 2)
+                    elif len(str(value)) == 3:
+                        print(value, end=' ' * 1)
                     else:
                         print(value, end=' ' * 3)
         print()

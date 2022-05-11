@@ -26,7 +26,7 @@ class DQNAgent(AbstractAgent):
         self.actions = ENV.action_space
         self.update_interval = 300
         self.train_interval = 1
-        self.gamma = 0.85
+        self.gamma = 0.95
         self.steps = 0
         self._EPSILON = 0.99
         self._EPSILON_DECAY = 0.000_005

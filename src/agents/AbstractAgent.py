@@ -28,13 +28,16 @@ class AbstractAgent:
         # TODO Change available actions into dict where action is key and value is positions
         if buildable_road_locations:
             if self.resources['brick'] >= 1 and self.resources['lumber'] >= 1:
-                available_actions.append("build_road")
+                for road_location in buildable_road_locations:
+                    available_actions.append("build_road")
         if buildable_village_locations:
             if self.resources['brick'] >= 1 and self.resources['lumber'] >= 1 \
                     and self.resources['wool'] >= 1 and self.resources['grain'] >= 1:
-                available_actions.append("build_village")
+                for village_location in buildable_village_locations:
+                    available_actions.append("build_village")
         if self.resources['grain'] >= 2 and self.resources['ore'] >= 3 and self.villages:
-            available_actions.append("build_city")
+            for city_location in self.villages:
+                available_actions.append("build_city")
         for key, item in self.resources.items():
             if self.resources[key] >= 4:
                 available_actions.append("trade")

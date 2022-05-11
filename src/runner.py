@@ -19,6 +19,7 @@ class Runner:
         self.victory_points_batch = []
         self.score = 0  # store for the scores of an episode
         self.episode = 1  # episode counter
+        self.best_win_rate = 0
 
         self.path = './graphs/' + datetime.datetime.now().strftime("%y%m%d_%H%M") \
                     + ('_train_' if self.train else '_run_') \
@@ -35,18 +36,17 @@ class Runner:
         self.victory_points_batch.append(self.agent.score)
         self.scores_batch.append(self.score)
 
-        if self.agent.history:
-            tf.summary.scalar('Loss', np.squeeze(self.agent.history.history['loss']), self.episode)
-
         if len(self.scores_batch) == 50:
             with self.writer.as_default():
                 tf.summary.scalar('Win rate average (50) per Episode', np.mean(self.scores_batch), self.episode - 50)
                 tf.summary.scalar('Average VP (50) per Episode', np.mean(self.victory_points_batch), self.episode - 50)
                 tf.summary.scalar('Epsilon per Episode', self.agent.get_epsilon(), self.episode)
+                tf.summary.scalar('Loss', np.squeeze(self.agent.history.history['loss']), self.episode)
 
-                # Victory points
-                #self.writer.flush()
-                # save new model if moving win rate is best
+                if self.best_win_rate < np.mean(self.scores_batch):
+                    self.best_win_rate = np.mean(self.scores_batch)
+                    self.network.save_weights('models/DQNAgent_best_weights.h5')
+                # self.writer.flush()
             self.scores_batch.pop(0)
             self.victory_points_batch.pop(0)
         if self.train and self.episode % 10 == 0:
@@ -60,13 +60,6 @@ class Runner:
 
     @timer
     def run(self, episodes):
-        print("GPU: ")
-        print(tf.config.list_physical_devices('GPU'))
-        results = {
-            type(self.agent).__name__: 0,
-            "SmartRandomAgent": 0
-        }
-
         while self.episode <= episodes:
             self.env.reset_env()
 
@@ -123,25 +116,12 @@ class Runner:
             if ranking[0] == self.agent:
                 self.score = 1
 
-            for i, player in enumerate(reversed(ranking)):
-                results[type(player).__name__] += i
 
             for player in self.env.players:
                 print(f'{type(player).__name__} {player.villages} {player.cities}')
                 print(len(player.roads))
 
-            for key, item in results.items():
-                print(f'{key} wins {(item / self.episode) * 100}% won {item} times')
-            print(f'Epsilon {self.agent._EPSILON}')
-
+            print(f'Epsilon {self.agent.get_epsilon}')
             self.summarize()
 
             self.env.print_board()
-
-        for key, item in results.items():
-            print(f'{key} wins {(item / episodes) * 100}%')
-
-
-
-
-

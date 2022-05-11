@@ -10,7 +10,7 @@ _CONFIG = dict(
     train=True,
     agent=DQNAgent,
     load_path='./pickles/',
-    shuffle=False
+    shuffle=True
 )
 
 
@@ -22,7 +22,7 @@ def main(unused_argv):
     )
 
     env = Environment(
-        players=[agent, SmartRandomAgent(9)],
+        players=[agent, RandomAgent(-1)],
         visualize=_CONFIG['visualize'],
         shuffle=_CONFIG['shuffle']
     )
