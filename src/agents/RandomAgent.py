@@ -16,7 +16,6 @@ class RandomAgent(AbstractAgent):
 
         action = r.choice(available_actions)
         location = self.take_action(action, buildable_road_locations, buildable_village_locations)
-        print("RA", action, location)
 
         return action, location
 

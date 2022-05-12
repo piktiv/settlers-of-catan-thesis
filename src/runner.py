@@ -36,7 +36,7 @@ class Runner:
         self.victory_points_batch.append(self.agent.score)
         self.scores_batch.append(self.score)
 
-        if len(self.scores_batch) == 50:
+        if len(self.scores_batch) == 50 and self.train:
             with self.writer.as_default():
                 tf.summary.scalar('Win rate average (50) per Episode', np.mean(self.scores_batch), self.episode - 50)
                 tf.summary.scalar('Average VP (50) per Episode', np.mean(self.victory_points_batch), self.episode - 50)
@@ -45,10 +45,14 @@ class Runner:
 
                 if self.best_win_rate < np.mean(self.scores_batch):
                     self.best_win_rate = np.mean(self.scores_batch)
+                    print("saving new best weights", self.episode)
                     self.agent.network.save_weights('models/DQNAgent_best_weights.h5')
                 # self.writer.flush()
             self.scores_batch.pop(0)
             self.victory_points_batch.pop(0)
+        else:
+            tf.summary.scalar('Win rate', np.mean(self.scores_batch), self.episode)
+
         if self.train and self.episode % 10 == 0:
             print(f'saving weights')
             self.agent.save_model(self.path)
@@ -60,6 +64,7 @@ class Runner:
 
     @timer
     def run(self, episodes):
+        wins = 0
         while self.episode <= episodes:
             self.env.reset_env()
 
@@ -115,8 +120,9 @@ class Runner:
             ranking = self.get_ranking()
             if ranking[0] == self.agent:
                 self.score = 1
+                wins += 1
 
-
+            print("WIN RATE", wins / self.episode)
             for player in self.env.players:
                 print(f'{type(player).__name__} {player.villages} {player.cities}')
                 print(len(player.roads))
