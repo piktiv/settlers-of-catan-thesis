@@ -2,7 +2,7 @@ from absl import app
 from src.environment import Environment
 from src.runner import Runner
 from src.agents import *
-
+import numpy as np
 
 _CONFIG = dict(
     episodes=10000,

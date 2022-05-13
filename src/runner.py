@@ -43,15 +43,13 @@ class Runner:
                 tf.summary.scalar('Epsilon per Episode', self.agent.get_epsilon(), self.episode)
                 tf.summary.scalar('Loss', np.squeeze(self.agent.history.history['loss']), self.episode)
 
-                if self.best_win_rate < np.mean(self.scores_batch):
+                if self.best_win_rate < np.mean(self.scores_batch) and self.episode > 400:
                     self.best_win_rate = np.mean(self.scores_batch)
                     print("saving new best weights", self.episode)
                     self.agent.network.save_weights('models/DQNAgent_best_weights.h5')
                 # self.writer.flush()
             self.scores_batch.pop(0)
             self.victory_points_batch.pop(0)
-        else:
-            tf.summary.scalar('Win rate', np.mean(self.scores_batch), self.episode)
 
         if self.train and self.episode % 10 == 0:
             print(f'saving weights')
@@ -80,7 +78,7 @@ class Runner:
                 if player == self.agent and self.train:
                     self.agent.save_experience(
                         self.agent.state, self.agent.last_action, obs.reward(self.agent),
-                        obs.last(), self.agent.encode_resources(obs.board)
+                        obs.last(), obs.board
                     )
 
                 action, location = player.free_road_build(obs, location)
@@ -94,7 +92,7 @@ class Runner:
                         if player == self.agent and self.train:
                             self.agent.save_experience(
                                 self.agent.state, self.agent.last_action, obs.reward(self.agent),
-                                obs.last(), self.agent.encode_resources(obs.board)
+                                obs.last(), obs.board
                             )
 
                         action, location = player.step(obs)
@@ -114,7 +112,7 @@ class Runner:
                 if player == self.agent and self.train:
                     self.agent.save_experience(
                         self.agent.state, self.agent.last_action, obs.reward(self.agent),
-                        obs.last(), self.agent.encode_resources(obs.board)
+                        obs.last(), obs.board
                     )
 
             ranking = self.get_ranking()

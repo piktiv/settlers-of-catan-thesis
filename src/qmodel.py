@@ -9,15 +9,17 @@ def q_model(input_shape, action_space):
     input_layer = Input(input_shape)
     x = input_layer
     x = Conv2D(64, kernel_size=8, strides=4, activation='relu', input_shape=input_shape,
-               padding='same')(x)
-    x = Conv2D(64, kernel_size=4, strides=2, activation='relu', padding='same')(x)
-    x = Conv2D(64, kernel_size=3, strides=1, activation='relu', padding='same')(x)
+               padding='same', kernel_initializer='he_normal')(x)
+    x = Conv2D(64, kernel_size=4, strides=2, activation='relu', padding='same',
+               kernel_initializer='he_normal')(x)
+    x = Conv2D(64, kernel_size=3, strides=1, activation='relu', padding='same',
+               kernel_initializer='he_normal')(x)
     x = Flatten()(x)
 
     # Hidden Layer he_uniform/he_normal
-    x = Dense(512, activation="relu", kernel_initializer='he_uniform')(x)
-    x = Dense(256, activation="relu", kernel_initializer='he_uniform')(x)
-    x = BatchNormalization()(x)  # Before linear expression
+    x = Dense(512, activation="relu", kernel_initializer='he_normal')(x)
+    x = Dense(256, activation="relu", kernel_initializer='he_normal')(x)
+    #x = BatchNormalization()(x)  # Before linear expression
     #x = Dense(64, activation="relu", kernel_initializer='he_uniform')(x)
 
     # Output Layer

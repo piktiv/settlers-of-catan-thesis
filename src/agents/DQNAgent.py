@@ -26,15 +26,15 @@ class DQNAgent(AbstractAgent):
         self.actions = ENV.action_space
         self.update_interval = 300
         self.train_interval = 1
-        self.gamma = 0.99
+        self.gamma = 0.95
         self.steps = 0
         self._EPSILON = 0.99
-        self._EPSILON_DECAY = 0.000_001
-        self._MIN_EPSILON = 0.1
+        self._EPSILON_DECAY = 0.000_003
+        self._MIN_EPSILON = 0.05
 
         self.alpha = 0.7
         self.beta = 0.5
-        self.beta_inc = 0.000_005
+        self.beta_inc = 0.000_003
         self.epsilon_replay = 0.000_001
         self.experience_replay = PrioritizedReplayBuffer(100_000, self.beta)
         #self.experience_replay = ExperienceReplay()
@@ -56,7 +56,7 @@ class DQNAgent(AbstractAgent):
                     q_values[i] = -np.Inf
             if action == "trade":
                 trade_in, trade_out = location
-                if self.resources[trade_in] < 4:
+                if self.resources[trade_in] < 4 or self.resources[trade_out] > 11:
                     q_values[i] = -np.Inf
 
         return q_values
@@ -69,10 +69,11 @@ class DQNAgent(AbstractAgent):
         if r.random() < self._EPSILON and self.train:   # Exploration
             action = np.random.choice(available_actions)    # Action is chosen uniformly
             location = self.take_action(action, buildable_road_locations, buildable_village_locations)
-            if self._EPSILON > self._MIN_EPSILON:
-                self._EPSILON -= self._EPSILON_DECAY
+
         else:   # Exploitation
-            q_values = self.network.predict(np.array(obs.board.reshape([1, obs.board.shape[0], obs.board.shape[1], 1])))
+            norm_board = np.copy(obs.board)
+            norm_board = norm_board / 12.0
+            q_values = self.network.predict(np.array(norm_board.reshape([1, norm_board.shape[0], norm_board.shape[1], 1])))
             q_values = np.squeeze(q_values)
 
             masked_q_values = self.action_masking(
@@ -93,6 +94,11 @@ class DQNAgent(AbstractAgent):
             self.beta += self.beta_inc
         else:
             self.beta = 1
+
+        if self._EPSILON > self._MIN_EPSILON:
+            self._EPSILON -= self._EPSILON_DECAY
+        else:
+            self._EPSILON = self._MIN_EPSILON
 
         self.state = obs.board
         self.last_action = (action, location)
@@ -120,6 +126,11 @@ class DQNAgent(AbstractAgent):
                 y[state][self.actions.index(actions[state])] = (
                         rewards[state] + self.gamma * y_target[state][np.argmax(y_next[state])]
                 )
+                if self.steps % 600 == 0:
+                    print("LABELS",
+                        rewards[state] + self.gamma * y_target[state][np.argmax(y_next[state])]
+                    )
+        # error y gets to large. try normalize input
 
         self.history = self.network.fit(states, y, batch_size=self.batch_size, verbose=self.verbose, sample_weight=weights)
         self.verbose = 0
@@ -137,7 +148,33 @@ class DQNAgent(AbstractAgent):
         print("BETA", self.beta)
 
     def save_experience(self, state, action, reward, done, next_state):
-        self.experience_replay.add(state, action, reward, next_state, done)
+        for resource in self.resources.values():
+            if resource > 12:
+                raise ValueError("More resources than 12")
+
+        next_state = self.encode_resources(next_state)
+        norm_state = np.copy(state)
+        norm_state = norm_state / 12.0
+
+        norm_next_state = np.copy(next_state)
+        norm_next_state = norm_next_state / 12.0
+
+        a = np.where(norm_next_state > 12.0)
+        b = np.where(norm_state > 12.0)
+        x = np.where(norm_state < -1.0)
+        y = np.where(norm_next_state < -1.0)
+        if len(b[0]) > 0 or len(a[0]) > 0:
+            print(norm_state)
+            print(norm_next_state)
+            raise ValueError("state larger than 12")
+
+        if len(x[0]) > 0 or len(y[0]) > 0:
+            print(norm_state)
+            print(norm_next_state)
+            raise ValueError("state less than -1.0")
+
+
+        self.experience_replay.add(norm_state, action, reward, norm_next_state, done)
 
     def random_trade(self, trade_in):  # Trade with bank
         new_resources = list(self.resources.keys())
@@ -147,8 +184,9 @@ class DQNAgent(AbstractAgent):
         self.resources[trade_in] -= 4
 
     def trade(self, trade_in, traded_out):  # Trade with bank max resource for min resource
-        self.resources[traded_out] += 1
-        self.resources[trade_in] -= 4
+        if self.resources[traded_out] < 12:
+            self.resources[traded_out] += 1
+            self.resources[trade_in] -= 4
 
     def free_village_build(self, obs):  # Round 1
         buildable_locations = obs.free_build_village()
@@ -158,7 +196,9 @@ class DQNAgent(AbstractAgent):
             self._EPSILON -= self._EPSILON_DECAY
 
         else:   # Exploitation
-            q_values = self.network.predict(np.array(obs.board.reshape([1, obs.board.shape[0], obs.board.shape[1], 1])))
+            norm_board = np.copy(obs.board)
+            norm_board = norm_board / 12.0
+            q_values = self.network.predict(np.array(norm_board.reshape([1, norm_board.shape[0], norm_board.shape[1], 1])))
             q_values = np.squeeze(q_values)
 
             masked_q_values = self.action_masking(q_values, obs, buildable_locations, [], "build_village")
@@ -181,7 +221,9 @@ class DQNAgent(AbstractAgent):
             self._EPSILON -= self._EPSILON_DECAY
 
         else:   # Exploitation
-            q_values = self.network.predict(np.array(obs.board.reshape([1, obs.board.shape[0], obs.board.shape[1], 1])))
+            norm_board = np.copy(obs.board)
+            norm_board = norm_board / 12.0
+            q_values = self.network.predict(np.array(norm_board.reshape([1, norm_board.shape[0], norm_board.shape[1], 1])))
             q_values = np.squeeze(q_values)
 
             masked_q_values = self.action_masking(q_values, obs, [], buildable_locations, "build_road")

@@ -128,7 +128,7 @@ class Environment:
              [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
              [0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
              [0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0],
-             [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]])
+             [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]], dtype='f')
 
         if 0 in TILE_NUMBER:  # 0 is inserted when bandit tile is generated
             TILE_NUMBER.remove(0)
@@ -175,9 +175,12 @@ class Environment:
                     for row_offset, col_offset in [(1, -2), (-1, -2), (3, 0), (-3, 0), (1, 2), (-1, 2)]:
                         for player in self.players:
                             if self.board[tile.row + row_offset][tile.col + col_offset] == player.id:
-                                player.resources[tile.get_tile_type()] += 1
-                            if self.board[tile.row + row_offset][tile.col + col_offset] == player.id * 10 + player.id:
-                                player.resources[tile.get_tile_type()] += 2
+                                if player.resources[tile.get_tile_type()] < 12:
+                                    player.resources[tile.get_tile_type()] += 1
+
+                            if self.board[tile.row + row_offset][tile.col + col_offset] == player.id + 0.5:
+                                if player.resources[tile.get_tile_type()] < 11:
+                                    player.resources[tile.get_tile_type()] += 2
 
     # Check if neighboring nodes are not built upon represented by 1
     def check_village_buildable(self, location):
@@ -256,7 +259,7 @@ class Environment:
         if action == "build_village" or action == "build_road" and self.board[row][col] == BUILDABLE:
             self.board[row][col] = player_id    # TODO add longest road check
         elif action == "build_city" and self.board[row][col] == player_id:
-            self.board[row][col] = player_id * 10 + player_id
+            self.board[row][col] = player_id + 0.5
         return self
 
     def last(self):
@@ -297,19 +300,20 @@ class Environment:
             result = sorted(self.players, key=lambda x: x.score, reverse=True)
             placement = result.index(agent)
             if result[-1] == agent:
-                return -1
+                return -1.0
 
             if placement == 0:
-                return 1
+                return 1.0
             elif placement == 1:
                 return 0.7
             elif placement == 2:
                 return 0.3
-            elif placement == 3:
-                return -1
+            elif placement == 3: # TODO Trying -0.1
+                return -0.1
             else:
                 return 0
         else:
+            # Add small intermediate reward for building village/city, to counter excessive roads
             return 0
 
 

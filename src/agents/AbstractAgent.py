@@ -73,8 +73,9 @@ class AbstractAgent:
         return location
 
     def trade(self, trade_in, trade_out):  # Trade with bank
-        self.resources[trade_out] += 1
-        self.resources[trade_in] -= 4
+        if self.resources[trade_out] < 12:
+            self.resources[trade_out] += 1
+            self.resources[trade_in] -= 4
 
     def free_village_build(self, obs):   # Round 1
         buildable_locations = obs.free_build_village()
