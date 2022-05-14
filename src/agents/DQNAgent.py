@@ -131,6 +131,7 @@ class DQNAgent(AbstractAgent):
                         rewards[state] + self.gamma * y_target[state][np.argmax(y_next[state])]
                     )
         # error y gets to large. try normalize input
+        # Try normalizing y
 
         self.history = self.network.fit(states, y, batch_size=self.batch_size, verbose=self.verbose, sample_weight=weights)
         self.verbose = 0
