@@ -24,9 +24,11 @@ class DQNAgent(AbstractAgent):
         self.verbose = 0
 
         self.actions = ENV.action_space
+        # Try upping update interval
         self.update_interval = 300
+        self.tau = 0.9
         self.train_interval = 1
-        self.gamma = 0.95
+        self.gamma = 0.90
         self.steps = 0
         self._EPSILON = 0.99
         self._EPSILON_DECAY = 0.000_003
@@ -38,7 +40,7 @@ class DQNAgent(AbstractAgent):
         self.epsilon_replay = 0.000_001
         self.experience_replay = PrioritizedReplayBuffer(100_000, self.beta)
         #self.experience_replay = ExperienceReplay()
-        self.min_exp_len = 300
+        self.min_exp_len = 6000
 
         self.state = None
         self.last_action = None
@@ -72,7 +74,7 @@ class DQNAgent(AbstractAgent):
 
         else:   # Exploitation
             norm_board = np.copy(obs.board)
-            norm_board = norm_board / 12.0
+            norm_board = self.normalize_state(norm_board)
             q_values = self.network.predict(np.array(norm_board.reshape([1, norm_board.shape[0], norm_board.shape[1], 1])))
             q_values = np.squeeze(q_values)
 
@@ -132,7 +134,9 @@ class DQNAgent(AbstractAgent):
                     )
         # error y gets to large. try normalize input
 
-        self.history = self.network.fit(states, y, batch_size=self.batch_size, verbose=self.verbose, sample_weight=weights)
+        #self.history = self.network.fit(states, y, verbose=self.verbose, sample_weight=weights)
+        self.history = self.network.fit(states, y, verbose=self.verbose)
+
         self.verbose = 0
 
         priorities = []
@@ -143,9 +147,20 @@ class DQNAgent(AbstractAgent):
         self.experience_replay.update_priorities(batch_idxes, priorities)
 
     def update_target(self):
-        self.target_network.set_weights(self.network.get_weights())
+        #self.target_network.set_weights(self.network.get_weights())
+        weights = self.network.get_weights()
+        target_weights = self.target_network.get_weights()
+
+        for i in range(len(target_weights)):
+            target_weights[i] = self.tau * weights[i] + (1 - self.tau) * target_weights[i]
+
+        self.target_network.set_weights(target_weights)
         self.verbose = 1
         print("BETA", self.beta)
+
+    def normalize_state(self, state):
+        # Feature scale matrix max = 12.0, min = -1
+        return (state + 1.0) / (12.0 + 1.0)
 
     def save_experience(self, state, action, reward, done, next_state):
         for resource in self.resources.values():
@@ -154,10 +169,10 @@ class DQNAgent(AbstractAgent):
 
         next_state = self.encode_resources(next_state)
         norm_state = np.copy(state)
-        norm_state = norm_state / 12.0
+        norm_state = self.normalize_state(norm_state)
 
         norm_next_state = np.copy(next_state)
-        norm_next_state = norm_next_state / 12.0
+        norm_next_state = self.normalize_state(norm_next_state)
 
         a = np.where(norm_next_state > 12.0)
         b = np.where(norm_state > 12.0)
@@ -197,7 +212,7 @@ class DQNAgent(AbstractAgent):
 
         else:   # Exploitation
             norm_board = np.copy(obs.board)
-            norm_board = norm_board / 12.0
+            norm_board = self.normalize_state(norm_board)
             q_values = self.network.predict(np.array(norm_board.reshape([1, norm_board.shape[0], norm_board.shape[1], 1])))
             q_values = np.squeeze(q_values)
 
@@ -222,7 +237,7 @@ class DQNAgent(AbstractAgent):
 
         else:   # Exploitation
             norm_board = np.copy(obs.board)
-            norm_board = norm_board / 12.0
+            norm_board = self.normalize_state(norm_board)
             q_values = self.network.predict(np.array(norm_board.reshape([1, norm_board.shape[0], norm_board.shape[1], 1])))
             q_values = np.squeeze(q_values)
 

@@ -23,7 +23,7 @@ TILE_ID = [
 ]
 
 # Bandit = 0, Brick = 2, Grain = 3, Ore = 4, Lumber = 5, Wool = 6 (Buildable tile = 1)
-TILE_TYPE = [0, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6]
+TILE_TYPE = [0, 0.2, 0.2, 0.2, 0.3, 0.3, 0.3, 0.3, 0.4, 0.4, 0.4, 0.5, 0.5, 0.5, 0.5, 0.6, 0.6, 0.6, 0.6]
 TILE_NUMBER = [5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8, 10, 9, 4, 5, 6, 3, 11]   # Dice number
 
 BUILDABLE = 1
@@ -60,15 +60,15 @@ class Tile:
     def get_tile_type(self):
         if self.tile_type == 0:
             return "bandit"
-        if self.tile_type == 2:
+        if self.tile_type == 0.2:
             return "brick"
-        if self.tile_type == 3:
+        if self.tile_type == 0.3:
             return "grain"
-        if self.tile_type == 4:
+        if self.tile_type == 0.4:
             return "ore"
-        if self.tile_type == 5:
+        if self.tile_type == 0.5:
             return "lumber"
-        if self.tile_type == 6:
+        if self.tile_type == 0.6:
             return "wool"
 
 
@@ -135,9 +135,12 @@ class Environment:
 
         # Generate tile type and number
         for i, (tile, tile_number) in enumerate(zip(self.tiles, TILE_NUMBER)):
-            for row_offset in range(-1, 2):
+            '''for row_offset in range(-1, 2):
                 for col_offset in range(-1, 2):
-                    self.board[tile.row + row_offset][tile.col + col_offset] = tile.tile_type
+                    self.board[tile.row + row_offset][tile.col + col_offset] = tile.tile_type'''
+
+            self.board[tile.row + 1][tile.col] = tile.tile_type
+            self.board[tile.row - 1][tile.col] = tile.tile_type
             if tile.tile_type == 0:  # Bandit tile
                 self.board[tile.row][tile.col] = 0
                 TILE_NUMBER.insert(i, 0)  # Insert 0 so that tiles and tile number keep same length
@@ -149,6 +152,8 @@ class Environment:
         for row in self.board:
             print("")
             for value in row:
+                if not value % 1:
+                    value = int(value)
                 if value == 0 or value in []:
                     print(" " * 4, end='')
                 else:
@@ -303,13 +308,13 @@ class Environment:
                 return -1.0
 
             if placement == 0:
-                return 1.0
+                return 1
             elif placement == 1:
                 return 0.7
             elif placement == 2:
                 return 0.3
             elif placement == 3: # TODO Trying -0.1
-                return -0.1
+                return -1.0
             else:
                 return 0
         else:

@@ -24,13 +24,13 @@ class SmartRandomAgent(AbstractAgent):
         available_actions = ["pass"]
 
         if buildable_road_locations:
-            if self.resources['brick'] >= 1 and self.resources['lumber'] >= 1:
+            if self.resources['brick'] >= 1 and self.resources['lumber'] >= 1 and len(self.roads) < 15:
                 available_actions.append("build_road")
         if buildable_village_locations:
             if self.resources['brick'] >= 1 and self.resources['lumber'] >= 1 \
-                    and self.resources['wool'] >= 1 and self.resources['grain'] >= 1:
+                    and self.resources['wool'] >= 1 and self.resources['grain'] >= 1 and len(self.villages) < 5:
                 available_actions.append("build_village")
-        if self.resources['grain'] >= 2 and self.resources['ore'] >= 3 and self.villages:
+        if self.resources['grain'] >= 2 and self.resources['ore'] >= 3 and self.villages and len(self.cities) < 4:
             available_actions.append("build_city")
 
         key = self.key_with_max_resource()  # Always trades resource that is most abundant
