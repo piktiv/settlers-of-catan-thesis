@@ -22,7 +22,7 @@ def main(unused_argv):
     )
 
     env = Environment(
-        players=[agent, RandomAgent(-1)],
+        players=[agent, RandomAgent(13)],
         visualize=_CONFIG['visualize'],
         shuffle=_CONFIG['shuffle']
     )

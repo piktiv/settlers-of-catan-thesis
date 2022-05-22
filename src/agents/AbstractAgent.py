@@ -25,7 +25,7 @@ class AbstractAgent:
     def get_available_actions(self, buildable_road_locations, buildable_village_locations):
         available_actions = ["pass"]
 
-        # TODO Change available actions into dict where action is key and value is positions
+        # TODO Possible improvement: change available actions into dict where action is key and value is positions
         if buildable_road_locations:
             if self.resources['brick'] >= 1 and self.resources['lumber'] >= 1 and len(self.roads) < 15:
                 for road_location in buildable_road_locations:

@@ -18,15 +18,15 @@ class DQNAgent(AbstractAgent):
 
         self.network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
         self.target_network = q_model((ENV.board.shape[0], ENV.board.shape[1], 1), action_space=ENV.action_space)
-        self.batch_size = 64
+        self.batch_size = 32
         self.history = None
-        self.save = 'models/DQNAgent_weights_reduced.h5'
+        self.save = 'models/DQNAgent_weights_a.h5'
         self.verbose = 0
 
         self.actions = ENV.action_space
         # Try upping update interval
-        self.update_interval = 300
-        self.tau = 0.9
+        self.update_interval = 3000
+        self.tau = 0.99
         self.train_interval = 1
         self.gamma = 0.90
         self.steps = 0
@@ -39,7 +39,6 @@ class DQNAgent(AbstractAgent):
         self.beta_inc = 0.000_003
         self.epsilon_replay = 0.000_001
         self.experience_replay = PrioritizedReplayBuffer(100_000, self.beta)
-        #self.experience_replay = ExperienceReplay()
         self.min_exp_len = 6000
 
         self.state = None
@@ -102,6 +101,17 @@ class DQNAgent(AbstractAgent):
         else:
             self._EPSILON = self._MIN_EPSILON
 
+        if self.steps % 100 == 0:
+            obs.print_board()
+            print(available_actions)
+            print(action, location)
+            print(self.resources)
+            print(self.villages, self.cities)
+            print(len(self.roads))
+            print(buildable_road_locations)
+            print(buildable_village_locations)
+
+
         self.state = obs.board
         self.last_action = (action, location)
         self.steps += 1
@@ -116,7 +126,7 @@ class DQNAgent(AbstractAgent):
         states, actions, rewards, new_states, dones, weights, batch_idxes = experiences
 
         y = self.network.predict(states)
-        old_y = y
+        old_y = np.copy(y)
         y_next = self.network.predict(new_states)
         y_target = self.target_network.predict(new_states)
         actions = [tuple(action) for action in actions]
@@ -124,7 +134,7 @@ class DQNAgent(AbstractAgent):
         for state in range(self.batch_size):
             if dones[state]:
                 y[state][self.actions.index(actions[state])] = rewards[state]
-            else:   # Bellman equation to update rewards
+            else:   # Temporal Difference
                 y[state][self.actions.index(actions[state])] = (
                         rewards[state] + self.gamma * y_target[state][np.argmax(y_next[state])]
                 )
@@ -132,11 +142,10 @@ class DQNAgent(AbstractAgent):
                     print("LABELS",
                         rewards[state] + self.gamma * y_target[state][np.argmax(y_next[state])]
                     )
-        # error y gets to large. try normalize input
         # Try normalizing y
 
-        #self.history = self.network.fit(states, y, verbose=self.verbose, sample_weight=weights)
-        self.history = self.network.fit(states, y, verbose=self.verbose)
+        self.history = self.network.fit(states, y, verbose=self.verbose, sample_weight=weights)
+        #self.history = self.network.fit(states, y, verbose=self.verbose)
 
         self.verbose = 0
 
@@ -160,12 +169,12 @@ class DQNAgent(AbstractAgent):
         print("BETA", self.beta)
 
     def normalize_state(self, state):
-        # Feature scale matrix max = 12.0, min = -1
-        return (state + 1.0) / (12.0 + 1.0)
+        # Feature scale matrix max = 13.5, min = 0
+        return state / 13.5
 
     def save_experience(self, state, action, reward, done, next_state):
         for resource in self.resources.values():
-            if resource > 12:
+            if resource > 13:
                 raise ValueError("More resources than 12")
 
         next_state = self.encode_resources(next_state)
@@ -175,10 +184,10 @@ class DQNAgent(AbstractAgent):
         norm_next_state = np.copy(next_state)
         norm_next_state = self.normalize_state(norm_next_state)
 
-        a = np.where(norm_next_state > 12.0)
-        b = np.where(norm_state > 12.0)
-        x = np.where(norm_state < -1.0)
-        y = np.where(norm_next_state < -1.0)
+        a = np.where(norm_next_state > 13.0)
+        b = np.where(norm_state > 13.0)
+        x = np.where(norm_state < 0.0)
+        y = np.where(norm_next_state < 0.0)
         if len(b[0]) > 0 or len(a[0]) > 0:
             print(norm_state)
             print(norm_next_state)
@@ -188,7 +197,6 @@ class DQNAgent(AbstractAgent):
             print(norm_state)
             print(norm_next_state)
             raise ValueError("state less than -1.0")
-
 
         self.experience_replay.add(norm_state, action, reward, norm_next_state, done)
 

@@ -109,11 +109,10 @@ class Runner:
 
             # Last step, catches if agent don't take action leading to terminal state
             if self.train:
-                if player == self.agent and self.train:
-                    self.agent.save_experience(
-                        self.agent.state, self.agent.last_action, obs.reward(self.agent),
-                        obs.last(), obs.board
-                    )
+                self.agent.save_experience(
+                    self.agent.state, self.agent.last_action, obs.reward(self.agent),
+                    obs.last(), obs.board
+                )
 
             ranking = self.get_ranking()
             if ranking[0] == self.agent:

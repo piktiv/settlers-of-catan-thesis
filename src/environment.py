@@ -79,6 +79,8 @@ class Environment:
         r.shuffle(players)
         self.players = players
 
+        self.turn_counter = 0
+
         self.board = []
         self.tiles = []
         self.create_board()
@@ -157,7 +159,15 @@ class Environment:
                 if value == 0 or value in []:
                     print(" " * 4, end='')
                 else:
-                    if len(str(value)) == 2:
+                    if value == 13.0:
+                        print('x', end=' ' * 3)
+                    elif value == 13.5:
+                        print('X', end=' ' * 3)
+                    elif value == 7.0:
+                        print('o', end=' ' * 3)
+                    elif value == 7.5:
+                        print('O', end=' ' * 3)
+                    elif len(str(value)) == 2:
                         print(value, end=' ' * 2)
                     elif len(str(value)) == 3:
                         print(value, end=' ' * 1)
@@ -167,6 +177,7 @@ class Environment:
 
     # Dice throw and players gather resources
     def environment_step(self):
+        self.turn_counter += 1
         dice_number = r.randint(1, 6) + r.randint(1, 6)
 
         if dice_number == 7:
@@ -271,6 +282,10 @@ class Environment:
         for player in self.players:
             if player.score >= 10:
                 return True
+
+        if self.turn_counter > 1600:    # Avoid deadlock of random agents
+            return True
+
         return False
 
     def free_build_village(self):
@@ -297,6 +312,7 @@ class Environment:
         return buildable_road_locations
 
     def reset_env(self):
+        self.turn_counter = 0
         self.create_board()
         r.shuffle(self.players)
 
@@ -308,7 +324,7 @@ class Environment:
                 return -1.0
 
             if placement == 0:
-                return 1
+                return 10
             elif placement == 1:
                 return 0.7
             elif placement == 2:
@@ -316,9 +332,17 @@ class Environment:
             elif placement == 3: # TODO Trying -0.1
                 return -1.0
             else:
-                return 0
+                return -1.0
         else:
             # Add small intermediate reward for building village/city, to counter excessive roads
+            if agent.last_action[0] == "trade":
+                return -0.5
+            if agent.last_action[0] == "pass":
+                return -0.3
+            if agent.last_action[0] == "build_road":
+                return 0.1
+            if agent.last_action[0] == "build_village" or agent.last_action[0] == "build_city":
+                return 0.5
             return 0
 
 
